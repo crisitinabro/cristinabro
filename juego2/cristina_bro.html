@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>CRISTINA BRO - Liberar Argentina</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            background: #1a1a2e;
+            min-height: 100%;
+            height: 100%;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Pantalla de "Rotá el celular" - solo cuando está jugando */
+        #rotateScreen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        #rotateScreen .phone-icon {
+            font-size: 80px;
+            animation: rotatePhone 1.5s ease-in-out infinite;
+        }
+        #rotateScreen p {
+            font-size: 1.5rem;
+            margin-top: 20px;
+            color: #FFD700;
+        }
+        @keyframes rotatePhone {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+        
+        /* En portrait: mostrar rotateScreen SOLO si el juego está corriendo */
+        @media screen and (max-width: 900px) and (orientation: portrait) {
+            #rotateScreen.show-when-playing {
+                display: flex !important;
+            }
+        }
+        
+        /* Landscape móvil - adaptarse al espacio disponible */
+        @media screen and (orientation: landscape) and (max-height: 450px) {
+            html, body {
+                height: 100%;
+                overflow: hidden;
+            }
+            #gameContainer {
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                aspect-ratio: unset;
+            }
+            #gameCanvas {
+                border: none;
+                border-radius: 0;
+            }
+            .overlay {
+                border-radius: 0;
+            }
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 16/10;
+        }
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border: 4px solid #FFD700;
+            border-radius: 10px;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+        }
+        .hidden { display: none !important; }
+        .btn {
+            background: linear-gradient(180deg, #75AADB, #4A7DB8);
+            color: white;
+            border: 3px solid #FFD700;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 5px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .title {
+            font-size: 2.5rem;
+            color: #FFD700;
+            text-shadow: 3px 3px 0 #75AADB, 6px 6px 0 rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #75AADB;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .char-select {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+            max-width: 400px;
+        }
+        .char-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid #444;
+            border-radius: 10px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .char-btn:hover {
+            border-color: #FFD700;
+            background: rgba(255,215,0,0.2);
+        }
+        .char-btn.selected {
+            border-color: #FFD700;
+            background: rgba(255,215,0,0.3);
+            box-shadow: 0 0 10px rgba(255,215,0,0.5);
+        }
+        .char-btn img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+        .char-name {
+            font-size: 0.7rem;
+            color: #fff;
+            margin-top: 3px;
+        }
+        #mobileControls {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            pointer-events: none;
+        }
+        .mobile-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 1.4rem;
+            background: rgba(255,255,255,0.5);
+            border: 2px solid rgba(0,0,0,0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+        }
+        .mobile-btn:active {
+            opacity: 1;
+            transform: scale(0.95);
+        }
+        .jump-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 1.6rem;
+            background: rgba(100,255,100,0.6);
+            border-color: #228B22;
+        }
+        .controls-left {
+            display: flex;
+            gap: 5px;
+            align-items: flex-end;
+        }
+        .controls-right {
+            display: flex;
+            gap: 5px;
+            align-items: flex-end;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Pantalla de rotar celular -->
+    <div id="rotateScreen">
+        <div class="phone-icon">📱</div>
+        <p>¡Rotá el celular!</p>
+        <p style="font-size: 1rem; color: #888; margin-top: 10px;">Jugá en horizontal</p>
+    </div>
+    
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+        
+        <!-- PANTALLA DE INICIO -->
+        <div id="startScreen" class="overlay">
+            <h1 class="title">👩‍⚖️ CRISTINA BRO 👩‍⚖️</h1>
+            <p class="subtitle">¡Liberá las provincias para llegar a Cristina!</p>
+            
+            <p style="color: #FFD700; margin: 5px 0; font-size: 0.9rem;">Elegí tu héroe:</p>
+            <div class="char-select" id="charSelect">
+                <!-- Se llena con JS -->
+            </div>
+            
+            <button class="btn" onclick="startGame()" style="margin-top: 10px; animation: pulse 1s infinite;">
+                🎮 ¡JUGAR!
+            </button>
+            
+            <p id="fullscreenTip" style="color: #888; font-size: 0.65rem; margin-top: 8px; display: none;">
+                📱 Tip: Agregá a pantalla de inicio para jugar sin barras
+            </p>
+            
+            <p style="color: #666; font-size: 0.7rem; margin-top: 5px;">
+                ← → Mover | ESPACIO Saltar | X Tirar
+            </p>
+        </div>
+        
+        <!-- PANTALLA DE NIVEL -->
+        <div id="levelScreen" class="overlay hidden">
+            <h2 id="levelTitle" style="color: #FFD700; font-size: 2rem;">NIVEL 1</h2>
+            <h3 id="levelName" style="color: #75AADB; font-size: 1.5rem;">TUCUMÁN</h3>
+            <p id="levelDesc" style="color: #fff; margin: 15px 0;">Cuna de la independencia</p>
+            <button class="btn" onclick="startLevel()">¡VAMOS!</button>
+        </div>
+        
+        <!-- PANTALLA GAME OVER -->
+        <div id="gameOverScreen" class="overlay hidden">
+            <h1 style="color: #FF4444; font-size: 2.5rem;">💀 GAME OVER 💀</h1>
+            <p id="gameOverText" style="margin: 15px 0;">¡Los liberales ganaron!</p>
+            <div id="finalScore" style="font-size: 1.5rem; color: #FFD700;">0</div>
+            <button class="btn" onclick="restartLevel()" style="background: linear-gradient(180deg, #4CAF50, #388E3C);">🔄 REINTENTAR</button>
+            <button class="btn" onclick="goToMenu()" style="margin-top: 10px;">🏠 MENÚ</button>
+        </div>
+        
+        <!-- PANTALLA VICTORIA NIVEL -->
+        <div id="levelCompleteScreen" class="overlay hidden">
+            <h1 style="color: #00FF00; font-size: 2rem;">✌️ ¡PROVINCIA LIBERADA! ✌️</h1>
+            <h2 id="completedLevelName" style="color: #FFD700;">TUCUMÁN ES PERONISTA</h2>
+            <div id="levelScore" style="font-size: 1.3rem; color: #fff; margin: 10px 0;">
+                <p>💵 Dólares: <span id="dollarCount">0</span></p>
+                <p>🪙 Oro: <span id="goldCount">0</span></p>
+                <p>🎫 Tickets: <span id="ticketCount">0</span></p>
+                <p style="color: #FFD700; font-size: 1.5rem; margin-top: 10px;">🏆 Total: <span id="totalScore">0</span></p>
+            </div>
+            <button class="btn" onclick="nextLevel()">→ SIGUIENTE PROVINCIA</button>
+        </div>
+        
+        <!-- PANTALLA VICTORIA FINAL -->
+        <div id="victoryScreen" class="overlay hidden">
+            <h1 style="color: #FFD700; font-size: 2.5rem;">🎉 ¡CRISTINA LIBRE! 🎉</h1>
+            <img src="https://kingmetronome.com/juego/sprites/cristina_libre.png" style="width: 250px; border-radius: 10px; border: 3px solid #FFD700; margin: 15px 0;">
+            <p style="color: #75AADB; font-size: 1.3rem;">¡Liberaste todas las provincias!</p>
+            <p style="color: #fff; font-size: 1rem;">Ahora ayudá a Cristina a escapar de los gorilas...</p>
+            <div style="font-size: 1.5rem; color: #FFD700; margin: 10px 0;">🏆 Puntaje Final: <span id="finalTotalScore">0</span></div>
+            <button class="btn" onclick="startInfiniteMode()" style="background: linear-gradient(180deg, #FF4500, #DC143C); animation: pulse 1s infinite;">
+                🔥 ESCAPE DE CRISTINA 🔥
+            </button>
+            <button class="btn" onclick="goToMenu()" style="margin-top: 10px;">🏠 MENÚ</button>
+        </div>
+        
+        <!-- CONTROLES MÓVILES -->
+        <div id="mobileControls" class="hidden">
+            <div class="controls-left">
+                <button class="mobile-btn" id="btnLeft">⬅️</button>
+                <button class="mobile-btn" id="btnRight">➡️</button>
+            </div>
+            <div class="controls-right">
+                <button class="mobile-btn" id="btnPrevProj" style="width: 40px; height: 40px; font-size: 1rem;">◀</button>
+                <button class="mobile-btn" id="btnShoot" style="background: rgba(255,100,100,0.6); width: 50px; height: 50px;">🪨</button>
+                <button class="mobile-btn" id="btnNextProj" style="width: 40px; height: 40px; font-size: 1rem;">▶</button>
+                <button class="mobile-btn jump-btn" id="btnJump">⬆️</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =============================================
+        // CONFIGURACIÓN DEL JUEGO
+        // =============================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Dimensiones base del juego
+        const BASE_WIDTH = 800;
+        const BASE_HEIGHT = 500;
+        let scaleX = 1;
+        let scaleY = 1;
+        
+        // Función para ajustar el canvas al espacio disponible
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Mantener proporción 16:10
+            const ratio = BASE_WIDTH / BASE_HEIGHT;
+            let newWidth, newHeight;
+            
+            if (containerWidth / containerHeight > ratio) {
+                newHeight = containerHeight;
+                newWidth = containerHeight * ratio;
+            } else {
+                newWidth = containerWidth;
+                newHeight = containerWidth / ratio;
+            }
+            
+            canvas.style.width = newWidth + 'px';
+            canvas.style.height = newHeight + 'px';
+            
+            scaleX = BASE_WIDTH / newWidth;
+            scaleY = BASE_HEIGHT / newHeight;
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeCanvas, 100);
+        });
+        
+        const SPRITES_URL = 'https://kingmetronome.com/juego/sprites/';
+        const sprites = {};
+        const SPRITE_LIST = [
+            'peron', 'peron_gorra', 'evita', 'nestor', 'kicillof', 'grabois', 'maradona', 'hebe', 'lula', 'papa', 'moreno', 'gato',
+            'milei', 'milei_hero', 'bullrich', 'bullrich2', 'macri', 'karina', 'caputo', 'adorni', 'policia', 'trump', 'trump_milei',
+            'feinmann', 'majul', 'lanata', 'viale', 'trebuc', 'gordo_dan', 'sturzenegger', 'espert2', 'potobellocchia', 'moyano',
+            'victoria', 'cristina', 'cristina_libre', 'cristina_caricatura', 'cristina_stencil', 'motosierra', 'cfk', 'balcon', 'gorila', 'escudo', 'mate', 'goma', 'escarapela', 'torta'
+        ];
+        
+        // Cargar sprites
+        SPRITE_LIST.forEach(name => {
+            const img = new Image();
+            img.src = SPRITES_URL + name + '.png';
+            img.onload = () => { sprites[name] = img; };
+        });
+        
+        // Personajes jugables
+        const PLAYABLE_CHARACTERS = [
+            { id: 'peron', name: 'Perón' },
+            { id: 'evita', name: 'Evita' },
+            { id: 'nestor', name: 'Néstor' },
+            { id: 'kicillof', name: 'Kicillof' },
+            { id: 'grabois', name: 'Grabois' },
+            { id: 'maradona', name: 'Maradona' },
+            { id: 'hebe', name: 'Hebe' },
+            { id: 'moreno', name: 'Moreno' },
+            { id: 'lula', name: 'Lula' },
+            { id: 'papa', name: 'Papa' },
+            { id: 'gato', name: 'Gato' }
+        ];
+        
+        // Niveles con todos los villanos disponibles
+        const LEVELS = [
+            { 
+                name: 'TUCUMÁN', 
+                subtitle: 'Los Periodistas atacan',
+                bgColor1: '#87CEEB', bgColor2: '#228B22',
+                groundColor: '#8B4513',
+                enemies: ['majul', 'feinmann', 'lanata', 'viale', 'trebuc', 'gordo_dan'],
+                bossType: 'gordo_dan',
+                jugador: 'kicillof',
+                length: 6000
+            },
+            { 
+                name: 'CÓRDOBA', 
+                subtitle: 'La Casta Política',
+                bgColor1: '#FFE4B5', bgColor2: '#556B2F',
+                groundColor: '#A0522D',
+                enemies: ['majul', 'feinmann', 'lanata', 'gordo_dan', 'karina', 'adorni'],
+                bossType: 'karina',
+                jugador: 'grabois',
+                length: 6500
+            },
+            { 
+                name: 'SANTA FE', 
+                subtitle: 'El Vocero Miente',
+                bgColor1: '#E0F7FA', bgColor2: '#2E7D32',
+                groundColor: '#DEB887',
+                enemies: ['majul', 'feinmann', 'gordo_dan', 'karina', 'adorni', 'moyano'],
+                bossType: 'adorni',
+                jugador: 'moreno',
+                length: 7000
+            },
+            { 
+                name: 'MENDOZA', 
+                subtitle: 'La Represión',
+                bgColor1: '#B0C4DE', bgColor2: '#228B22',
+                groundColor: '#8B4513',
+                enemies: ['milei', 'gordo_dan', 'bullrich', 'policia', 'espert2'],
+                bossType: 'bullrich',
+                jugador: 'gato',
+                length: 7500
+            },
+            { 
+                name: 'ROSARIO', 
+                subtitle: 'Las Madres resisten',
+                bgColor1: '#87CEEB', bgColor2: '#228B22',
+                groundColor: '#696969',
+                enemies: ['milei', 'gordo_dan', 'bullrich', 'caputo', 'policia', 'sturzenegger', 'espert2', 'potobellocchia'],
+                bossType: 'caputo',
+                jugador: 'hebe',
+                length: 8000
+            },
+            { 
+                name: 'LA PLATA', 
+                subtitle: 'El Hermano Brasileño',
+                bgColor1: '#1E90FF', bgColor2: '#FFD700',
+                groundColor: '#555555',
+                enemies: ['milei', 'gordo_dan', 'bullrich', 'caputo', 'policia', 'sturzenegger', 'macri', 'espert2'],
+                bossType: 'macri',
+                jugador: 'lula',
+                length: 8500
+            },
+            { 
+                name: 'LA MATANZA', 
+                subtitle: 'La Mano de D10S',
+                bgColor1: '#FFB6C1', bgColor2: '#228B22',
+                groundColor: '#4a4a4a',
+                enemies: ['milei', 'gordo_dan', 'bullrich', 'caputo', 'policia', 'sturzenegger', 'trump', 'potobellocchia'],
+                bossType: 'trump',
+                jugador: 'maradona',
+                length: 9000
+            },
+            { 
+                name: 'MAR DEL PLATA', 
+                subtitle: 'La Bendición Papal',
+                bgColor1: '#FFFFFF', bgColor2: '#808080',
+                groundColor: '#F4A460',
+                enemies: ['milei', 'gordo_dan', 'karina', 'bullrich', 'caputo', 'policia', 'sturzenegger', 'macri', 'trump', 'espert2'],
+                bossType: 'karina',
+                jugador: 'papa',
+                length: 9500
+            },
+            { 
+                name: 'BUENOS AIRES', 
+                subtitle: 'La Batalla Previa',
+                bgColor1: '#FF6347', bgColor2: '#2F4F4F',
+                groundColor: '#333333',
+                enemies: ['milei', 'gordo_dan', 'karina', 'bullrich', 'caputo', 'policia', 'sturzenegger', 'macri', 'trump', 'espert2', 'potobellocchia'],
+                bossType: 'macri',
+                jugador: 'nestor',
+                length: 10000
+            },
+            { 
+                name: 'CASA ROSADA', 
+                subtitle: '¡LIBERAR A CRISTINA!',
+                bgColor1: '#4B0082', bgColor2: '#2F4F4F',
+                groundColor: '#8B7355',
+                enemies: ['milei', 'gordo_dan', 'karina', 'bullrich', 'caputo', 'sturzenegger', 'macri', 'trump', 'espert2', 'potobellocchia'],
+                bossType: 'milei',
+                jugador: 'peron',
+                length: 12000
+            }
+        ];
+        
+        // =============================================
+        // VARIABLES DEL JUEGO
+        // =============================================
+        let gameRunning = false;
+        let gamePaused = false;
+        let currentLevel = 0;
+        let selectedCharacter = 'peron';
+        
+        // Jugador
+        let player = {
+            x: 100,
+            y: 300,
+            vx: 0,
+            vy: 0,
+            width: 40,
+            height: 55,
+            onGround: false,
+            facingRight: true,
+            lives: 3,
+            invincible: false,
+            invincibleTimer: 0,
+            isGrande: false // Power-up escarapela
+        };
+        
+        // Física
+        const GRAVITY = 0.6;
+        const JUMP_FORCE = -14;
+        const MOVE_SPEED = 5;
+        const MAX_FALL_SPEED = 15;
+        
+        // Cámara/scroll
+        let cameraX = 0;
+        
+        // Objetos del nivel
+        let platforms = [];
+        let enemies = [];
+        let items = [];
+        let particles = [];
+        let projectiles = []; // Proyectiles del jugador
+        let enemyProjectiles = []; // Motosierras, balas de enemigos
+        
+        // Puntuación
+        let score = 0;
+        let dollars = 0;
+        let gold = 0;
+        let tickets = 0;
+        
+        // Proyectiles disponibles
+        const PROJECTILE_TYPES = [
+            { id: 'piedra', emoji: '🪨', name: 'Piedra' },
+            { id: 'brocoli', emoji: '🥦', name: 'Brócoli' },
+            { id: 'fernet', emoji: '🍾', name: 'Fernet' },
+            { id: 'constitucion', emoji: '📜', name: 'Constitución' },
+            { id: 'choripan', emoji: '🌭', name: 'Choripán' }
+        ];
+        let selectedProjectile = 0; // Índice del proyectil seleccionado
+        
+        // Controles
+        let keys = {
+            left: false,
+            right: false,
+            jump: false,
+            shoot: false
+        };
+        
+        // Móvil
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // =============================================
+        // AUDIO
+        // =============================================
+        let musicaFondo = null;
+        let audioEnabled = true;
+        const AUDIOS_URL = 'https://kingmetronome.com/juego/audios/';
+        
+        const MUSICA_NIVELES = {
+            1: 'https://kingmetronome.com/juego/marcha-peronista.mp3',
+            2: 'https://kingmetronome.com/juego/audios/marchasanlorenzo.mp3',
+            3: 'https://kingmetronome.com/juego/audios/nivel_3.mp3',
+            4: 'https://kingmetronome.com/juego/audios/nivel_4.mp3',
+            5: 'https://kingmetronome.com/juego/audios/nivel_5.mp3',
+            6: 'https://kingmetronome.com/juego/audios/nivel_6.mp3',
+            7: 'https://kingmetronome.com/juego/audios/nivel_7.mp3',
+            8: 'https://kingmetronome.com/juego/audios/nivel_8(1).mp3',
+            9: 'https://kingmetronome.com/juego/audios/nivel_9.mp3',
+            10: 'https://kingmetronome.com/juego/audios/nivel_10.mp3'
+        };
+        
+        // Audios de enemigos
+        const enemyAudios = {};
+        const enemyAudioList = [
+            'majul', 'majul2', 'majul3', 'feinmann', 'feinmann1', 'feinmann2', 
+            'lanata', 'lanata1', 'lanata2', 'milei_jocker', 'milei1', 'milei2', 
+            'karina', 'karina1', 'karina2', 'bullrich', 'caputo', 'adorni', 'adorni1', 
+            'policia', 'sturzenegger', 'trump', 'macri', 'gordo_dan', 'viale', 
+            'trebuc', 'trebuc1', 'trebuc2', 'espert'
+        ];
+        
+        // Precargar audios de enemigos
+        enemyAudioList.forEach(name => {
+            const audio = new Audio();
+            audio.src = AUDIOS_URL + name + '.mp3';
+            audio.volume = 0.45;
+            enemyAudios[name] = audio;
+        });
+        
+        // Audios de jugadores (inicio y victoria)
+        const playerAudios = {};
+        const playerAudioList = ['maradona', 'moreno', 'papa', 'nestor', 'peron', 'grabois', 'gato', 'hebe', 'lula', 'kicillof'];
+        
+        playerAudioList.forEach(name => {
+            playerAudios[name + '_inicio'] = new Audio(AUDIOS_URL + name + '_inicio.mp3');
+            playerAudios[name + '_inicio'].volume = 0.55;
+            playerAudios[name + '_victoria'] = new Audio(AUDIOS_URL + name + '_victoria.mp3');
+            playerAudios[name + '_victoria'].volume = 0.55;
+        });
+        
+        let enemyAudioPlayed = {}; // Para que cada enemigo suene solo 1 vez
+        
+        function playEnemyAudio(enemyType) {
+            if (!audioEnabled) return;
+            if (mainAudioPlaying) return; // No interrumpir audio del personaje
+            if (enemyAudioPlayed[enemyType]) return; // Ya sonó
+            
+            let audioKey = enemyType;
+            
+            // Algunos tienen variantes aleatorias
+            if (enemyType === 'majul') {
+                audioKey = ['majul', 'majul2', 'majul3'][Math.floor(Math.random() * 3)];
+            } else if (enemyType === 'feinmann') {
+                audioKey = ['feinmann', 'feinmann1', 'feinmann2'][Math.floor(Math.random() * 3)];
+            } else if (enemyType === 'lanata') {
+                audioKey = ['lanata', 'lanata1', 'lanata2'][Math.floor(Math.random() * 3)];
+            } else if (enemyType === 'milei') {
+                audioKey = ['milei_jocker', 'milei1', 'milei2'][Math.floor(Math.random() * 3)];
+            } else if (enemyType === 'karina') {
+                audioKey = ['karina', 'karina1', 'karina2'][Math.floor(Math.random() * 3)];
+            } else if (enemyType === 'trebuc') {
+                audioKey = ['trebuc', 'trebuc1', 'trebuc2'][Math.floor(Math.random() * 3)];
+            } else if (enemyType === 'adorni') {
+                audioKey = ['adorni', 'adorni1'][Math.floor(Math.random() * 2)];
+            }
+            
+            if (enemyAudios[audioKey]) {
+                try {
+                    enemyAudios[audioKey].currentTime = 0;
+                    enemyAudios[audioKey].play().catch(e => {});
+                    enemyAudioPlayed[enemyType] = true;
+                } catch(e) {}
+            }
+        }
+        
+        // Control de qué personajes ya dijeron su frase de inicio
+        let playerInicioPlayed = {};
+        
+        // Control para que audios principales no se interrumpan
+        let mainAudioPlaying = false;
+        
+        function onMainAudioEnd() {
+            mainAudioPlaying = false;
+        }
+        
+        function playPlayerAudio(tipo) {
+            if (!audioEnabled) return;
+            
+            // Si es audio de inicio, solo reproducir la primera vez
+            if (tipo === 'inicio') {
+                if (playerInicioPlayed[selectedCharacter]) {
+                    return; // Ya sonó, no repetir
+                }
+                playerInicioPlayed[selectedCharacter] = true;
+            }
+            
+            const key = selectedCharacter + '_' + tipo;
+            if (playerAudios[key]) {
+                try {
+                    mainAudioPlaying = true; // Bloquear audios de villanos
+                    playerAudios[key].currentTime = 0;
+                    playerAudios[key].onended = onMainAudioEnd; // Desbloquear al terminar
+                    playerAudios[key].play().catch(e => {
+                        mainAudioPlaying = false;
+                    });
+                } catch(e) {
+                    mainAudioPlaying = false;
+                }
+            }
+        }
+        
+        function playMusica(nivel) {
+            stopMusica();
+            if (!audioEnabled) return;
+            
+            const url = MUSICA_NIVELES[nivel] || MUSICA_NIVELES[1];
+            musicaFondo = new Audio(url);
+            musicaFondo.loop = true;
+            musicaFondo.volume = 0.2;
+            musicaFondo.play().catch(e => {
+                console.log('Música esperando interacción');
+            });
+        }
+        
+        function stopMusica() {
+            if (musicaFondo) {
+                musicaFondo.pause();
+                musicaFondo = null;
+            }
+        }
+        
+        // Reanudar música con toque
+        document.addEventListener('touchstart', () => {
+            if (musicaFondo && musicaFondo.paused) {
+                musicaFondo.play().catch(e => {});
+            }
+        }, { passive: true });
+        document.addEventListener('click', () => {
+            if (musicaFondo && musicaFondo.paused) {
+                musicaFondo.play().catch(e => {});
+            }
+        }, { passive: true });
+        
+        // Función para disparar
+        function shootProjectile() {
+            if (!gameRunning) {
+                console.log('No se puede disparar - juego no corriendo');
+                return;
+            }
+            
+            const proj = PROJECTILE_TYPES[selectedProjectile];
+            const direction = player.facingRight ? 1 : -1;
+            
+            console.log('Disparando:', proj.emoji, 'Dirección:', direction);
+            
+            projectiles.push({
+                x: player.x + player.width / 2,
+                y: player.y + player.height / 2,
+                vx: direction * 12,
+                vy: -3,
+                width: 20,
+                height: 20,
+                type: proj.id,
+                emoji: proj.emoji
+            });
+        }
+        
+        // Cambiar proyectil (Q y E o tocar el selector)
+        function nextProjectile() {
+            selectedProjectile = (selectedProjectile + 1) % PROJECTILE_TYPES.length;
+        }
+        function prevProjectile() {
+            selectedProjectile = (selectedProjectile - 1 + PROJECTILE_TYPES.length) % PROJECTILE_TYPES.length;
+        }
+        
+        // =============================================
+        // INICIALIZACIÓN
+        // =============================================
+        function init() {
+            // Ajustar canvas al tamaño disponible
+            resizeCanvas();
+            
+            // Crear selector de personajes
+            const charSelect = document.getElementById('charSelect');
+            charSelect.innerHTML = '';
+            PLAYABLE_CHARACTERS.forEach(char => {
+                const btn = document.createElement('div');
+                btn.className = 'char-btn' + (char.id === selectedCharacter ? ' selected' : '');
+                btn.onclick = () => selectCharacter(char.id);
+                btn.innerHTML = `
+                    <img src="${SPRITES_URL}${char.id}.png" alt="${char.name}">
+                    <div class="char-name">${char.name}</div>
+                `;
+                charSelect.appendChild(btn);
+            });
+            
+            // Controles teclado
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+                if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') {
+                    e.preventDefault();
+                    keys.jump = true;
+                }
+                if (e.key === 'x' || e.key === 'z') {
+                    shootProjectile();
+                }
+                if (e.key === 'q') prevProjectile();
+                if (e.key === 'e') nextProjectile();
+                if (e.key === 'Escape') togglePause();
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+                if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+                if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') keys.jump = false;
+            });
+            
+            // Controles móviles
+            setupMobileControls();
+        }
+        
+        function setupMobileControls() {
+            const btnLeft = document.getElementById('btnLeft');
+            const btnRight = document.getElementById('btnRight');
+            const btnJump = document.getElementById('btnJump');
+            const btnShoot = document.getElementById('btnShoot');
+            const btnPrevProj = document.getElementById('btnPrevProj');
+            const btnNextProj = document.getElementById('btnNextProj');
+            
+            btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; }, { passive: false });
+            btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; }, { passive: false });
+            
+            btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; }, { passive: false });
+            btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; }, { passive: false });
+            
+            btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; jump(); }, { passive: false });
+            btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys.jump = false; }, { passive: false });
+            
+            btnShoot.addEventListener('touchstart', (e) => { e.preventDefault(); shootProjectile(); }, { passive: false });
+            
+            btnPrevProj.addEventListener('touchstart', (e) => { 
+                e.preventDefault(); 
+                prevProjectile(); 
+                updateShootButton();
+            }, { passive: false });
+            
+            btnNextProj.addEventListener('touchstart', (e) => { 
+                e.preventDefault(); 
+                nextProjectile(); 
+                updateShootButton();
+            }, { passive: false });
+        }
+        
+        function updateShootButton() {
+            const btn = document.getElementById('btnShoot');
+            if (btn) {
+                btn.textContent = PROJECTILE_TYPES[selectedProjectile].emoji;
+            }
+        }
+        
+        function selectCharacter(charId) {
+            selectedCharacter = charId;
+            document.querySelectorAll('.char-btn').forEach(btn => btn.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+        
+        // =============================================
+        // GENERACIÓN DE NIVEL
+        // =============================================
+        function generateLevel(levelIndex) {
+            const level = LEVELS[levelIndex];
+            
+            platforms = [];
+            enemies = [];
+            items = [];
+            particles = [];
+            
+            // Piso base
+            for (let x = 0; x < level.length; x += 100) {
+                // Huecos ocasionales
+                if (x > 300 && x < level.length - 500 && Math.random() > 0.85) {
+                    continue; // Hueco
+                }
+                platforms.push({
+                    x: x,
+                    y: 450,
+                    width: 100,
+                    height: 50,
+                    type: 'ground'
+                });
+            }
+            
+            // Plataformas flotantes
+            for (let x = 400; x < level.length - 300; x += 200 + Math.random() * 200) {
+                if (Math.random() > 0.4) {
+                    const platY = 280 + Math.random() * 120;
+                    const platWidth = 80 + Math.random() * 60;
+                    
+                    // Algunas plataformas son móviles (más en niveles avanzados)
+                    const isMoving = Math.random() < (0.1 + levelIndex * 0.05);
+                    
+                    platforms.push({
+                        x: x,
+                        y: platY,
+                        width: platWidth,
+                        height: 20,
+                        type: 'platform',
+                        moving: isMoving,
+                        moveSpeed: isMoving ? (1 + Math.random()) : 0,
+                        moveDir: 1,
+                        startX: x,
+                        moveRange: 100 + Math.random() * 50
+                    });
+                    
+                    // Item sobre plataforma
+                    if (Math.random() > 0.5) {
+                        spawnItem(x + platWidth/2, platY - 30, level.length);
+                    }
+                }
+            }
+            
+            // Plataformas móviles verticales (algunas)
+            for (let x = 600; x < level.length - 500; x += 800 + Math.random() * 400) {
+                if (Math.random() < 0.3 && levelIndex > 1) {
+                    platforms.push({
+                        x: x,
+                        y: 300,
+                        width: 80,
+                        height: 20,
+                        type: 'platform',
+                        movingVertical: true,
+                        moveSpeed: 1 + Math.random() * 0.5,
+                        moveDir: 1,
+                        startY: 300,
+                        moveRange: 80
+                    });
+                }
+            }
+            
+            // Bloques con items
+            for (let x = 300; x < level.length - 300; x += 250 + Math.random() * 150) {
+                if (Math.random() > 0.5) {
+                    platforms.push({
+                        x: x,
+                        y: 320,
+                        width: 40,
+                        height: 40,
+                        type: 'block',
+                        hasItem: true
+                    });
+                }
+            }
+            
+            // Enemigos - más cantidad para que no esté vacío
+            // Nivel 1: enemigos moderados, espaciados
+            // Nivel 10: muchos enemigos, más juntos, rápidos
+            const baseSpacing = 500 - (levelIndex * 30); // 500 en nivel 1, 200 en nivel 10
+            const spacingVariation = 300 - (levelIndex * 25); // Más variación al principio
+            const enemyChance = 0.6 + (levelIndex * 0.04); // 60% en nivel 1, 96% en nivel 10
+            
+            for (let x = 600; x < level.length - 400; x += baseSpacing + Math.random() * spacingVariation) {
+                if (Math.random() < enemyChance) {
+                    spawnEnemy(x, level.enemies, levelIndex);
+                }
+            }
+            
+            // Boss al final - más HP en niveles avanzados
+            enemies.push({
+                x: level.length - 300,
+                y: 390,
+                width: 50,
+                height: 60,
+                vx: -0.3 - (levelIndex * 0.1), // Más lento al principio
+                type: level.bossType,
+                isBoss: true,
+                hp: 2 + Math.floor(levelIndex / 2), // 2 HP nivel 1, 3 HP nivel 3, etc.
+                direction: -1
+            });
+            
+            // Items en el suelo - más items en niveles difíciles para compensar
+            const itemChance = 0.5 - (levelIndex * 0.03); // Más items al principio
+            for (let x = 200; x < level.length - 200; x += 120 + Math.random() * 150) {
+                if (Math.random() > itemChance) {
+                    spawnItem(x, 420, level.length);
+                }
+            }
+            
+            // Escarapelas fijas (power-up)
+            // Niveles 1-5: 1 escarapela al 70% del nivel
+            // Niveles 6-10: 2-3 escarapelas distribuidas
+            if (levelIndex < 5) {
+                // 1 escarapela
+                items.push({
+                    x: level.length * 0.7,
+                    y: 320,
+                    width: 30,
+                    height: 35,
+                    type: 'escarapela',
+                    points: 0,
+                    bobOffset: Math.random() * Math.PI * 2
+                });
+            } else {
+                // 2-3 escarapelas
+                const cantEscarapelas = levelIndex >= 8 ? 3 : 2;
+                const posiciones = [0.4, 0.6, 0.8];
+                for (let i = 0; i < cantEscarapelas; i++) {
+                    items.push({
+                        x: level.length * posiciones[i],
+                        y: 320,
+                        width: 30,
+                        height: 35,
+                        type: 'escarapela',
+                        points: 0,
+                        bobOffset: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+        }
+        
+        function spawnEnemy(x, enemyTypes, levelIndex) {
+            const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            
+            // Velocidad según nivel: más lentos al principio
+            const baseSpeed = 0.5 + (levelIndex * 0.15); // 0.5 nivel 1, 1.85 nivel 10
+            const speedVariation = Math.random() * 0.5;
+            
+            enemies.push({
+                x: x,
+                y: 395,
+                width: 40,
+                height: 55,
+                vx: -(baseSpeed + speedVariation),
+                type: type,
+                isBoss: false,
+                hp: 1,
+                direction: -1
+            });
+        }
+        
+        function spawnItem(x, y, levelLength) {
+            const rand = Math.random();
+            let type, points;
+            
+            if (rand < 0.42) {
+                type = 'dollar';
+                points = 10;
+            } else if (rand < 0.68) {
+                type = 'gold';
+                points = 50;
+            } else if (rand < 0.82) {
+                type = 'ticket';
+                points = 100;
+            } else if (rand < 0.94) {
+                type = 'empanada'; // +1 vida
+                points = 0;
+            } else {
+                type = 'asado'; // +2 vidas (muy raro - 6%)
+                points = 0;
+            }
+            
+            items.push({
+                x: x,
+                y: y,
+                width: 25,
+                height: 25,
+                type: type,
+                points: points,
+                bobOffset: Math.random() * Math.PI * 2
+            });
+        }
+        
+        // =============================================
+        // LÓGICA DEL JUEGO
+        // =============================================
+        function update() {
+            if (!gameRunning || gamePaused) return;
+            
+            const level = LEVELS[currentLevel];
+            
+            // Movimiento horizontal
+            if (keys.right) {
+                player.vx = MOVE_SPEED;
+                player.facingRight = true;
+            } else if (keys.left) {
+                player.vx = -MOVE_SPEED;
+                player.facingRight = false;
+            } else {
+                player.vx *= 0.8;
+            }
+            
+            // Salto
+            if (keys.jump && player.onGround) {
+                jump();
+            }
+            
+            // Gravedad
+            player.vy += GRAVITY;
+            if (player.vy > MAX_FALL_SPEED) player.vy = MAX_FALL_SPEED;
+            
+            // Mover jugador
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // Actualizar plataformas móviles
+            for (let plat of platforms) {
+                if (plat.moving) {
+                    plat.x += plat.moveSpeed * plat.moveDir;
+                    if (plat.x > plat.startX + plat.moveRange || plat.x < plat.startX - plat.moveRange) {
+                        plat.moveDir *= -1;
+                    }
+                }
+                if (plat.movingVertical) {
+                    plat.y += plat.moveSpeed * plat.moveDir;
+                    if (plat.y > plat.startY + plat.moveRange || plat.y < plat.startY - plat.moveRange) {
+                        plat.moveDir *= -1;
+                    }
+                }
+            }
+            
+            // Límites
+            if (player.x < 0) player.x = 0;
+            if (player.x > level.length - player.width) player.x = level.length - player.width;
+            
+            // Colisión con plataformas
+            player.onGround = false;
+            for (let plat of platforms) {
+                if (checkCollision(player, plat)) {
+                    // Cayendo sobre plataforma
+                    if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 10) {
+                        player.y = plat.y - player.height;
+                        player.vy = 0;
+                        player.onGround = true;
+                    }
+                    // Golpeando bloque desde abajo
+                    else if (player.vy < 0 && plat.type === 'block') {
+                        player.y = plat.y + plat.height;
+                        player.vy = 0;
+                        if (plat.hasItem) {
+                            plat.hasItem = false;
+                            spawnItem(plat.x + plat.width/2, plat.y - 30, LEVELS[currentLevel].length);
+                            createParticles(plat.x + plat.width/2, plat.y, '#FFD700');
+                        }
+                    }
+                    // Colisión lateral
+                    else if (player.vy >= 0) {
+                        if (player.vx > 0) player.x = plat.x - player.width;
+                        else if (player.vx < 0) player.x = plat.x + plat.width;
+                    }
+                }
+            }
+            
+            // Caer al vacío
+            if (player.y > 600) {
+                playerDie();
+                return;
+            }
+            
+            // Invencibilidad
+            if (player.invincible) {
+                player.invincibleTimer--;
+                if (player.invincibleTimer <= 0) {
+                    player.invincible = false;
+                }
+            }
+            
+            // Actualizar enemigos
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                
+                // Mover enemigo
+                e.x += e.vx;
+                
+                // Cambiar dirección en bordes
+                if (e.x < cameraX - 50) {
+                    e.vx = Math.abs(e.vx);
+                    e.direction = 1;
+                }
+                if (e.x > cameraX + canvas.width + 50) {
+                    e.vx = -Math.abs(e.vx);
+                    e.direction = -1;
+                }
+                
+                // Enemigos disparan - menos frecuente en niveles bajos
+                if (!e.lastShot) e.lastShot = 0;
+                const shootDelay = 4000 - (currentLevel * 200); // 4 seg nivel 1, 2 seg nivel 10
+                const shootChance = e.isBoss ? (0.01 + currentLevel * 0.003) : (0.002 + currentLevel * 0.001);
+                if (Date.now() - e.lastShot > shootDelay && Math.random() < shootChance) {
+                    e.lastShot = Date.now();
+                    
+                    // Tipo de proyectil según enemigo
+                    let projType = 'goma';
+                    if (e.type === 'milei') projType = 'motosierra';
+                    else if (e.type === 'bullrich') projType = 'gas';
+                    else if (e.type === 'caputo') projType = 'dolar';
+                    else if (e.type === 'trump') projType = 'bandera_usa';
+                    else if (e.type === 'karina') projType = 'torta';
+                    
+                    // Calcular dirección hacia el jugador
+                    const dx = player.x - e.x;
+                    const dy = player.y - e.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const speed = 5;
+                    
+                    enemyProjectiles.push({
+                        x: e.x + e.width/2,
+                        y: e.y + e.height/2,
+                        vx: (dx / dist) * speed,
+                        vy: (dy / dist) * speed,
+                        type: projType
+                    });
+                }
+                
+                // Colisión con jugador
+                if (!player.invincible && checkCollision(player, e)) {
+                    // Saltar sobre enemigo
+                    if (player.vy > 0 && player.y + player.height < e.y + e.height/2 + 10) {
+                        e.hp--;
+                        player.vy = -10; // Rebote
+                        createParticles(e.x + e.width/2, e.y, '#FF0000');
+                        playEnemyAudio(e.type); // Reproducir audio del enemigo
+                        
+                        if (e.hp <= 0) {
+                            enemies.splice(i, 1);
+                            score += e.isBoss ? 500 : 100;
+                        }
+                    } else {
+                        // Daño al jugador
+                        playerHit();
+                    }
+                }
+            }
+            
+            // Colectar items
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                
+                if (checkCollision(player, item)) {
+                    items.splice(i, 1);
+                    
+                    if (item.type === 'dollar') {
+                        dollars++;
+                        score += 10;
+                    } else if (item.type === 'gold') {
+                        gold++;
+                        score += 50;
+                    } else if (item.type === 'ticket') {
+                        tickets++;
+                        score += 100;
+                    } else if (item.type === 'empanada') {
+                        player.lives = Math.min(player.lives + 1, 5);
+                    } else if (item.type === 'asado') {
+                        player.lives = Math.min(player.lives + 2, 5);
+                    } else if (item.type === 'escarapela') {
+                        // ¡Te hace grande!
+                        player.isGrande = true;
+                        const oldHeight = player.height;
+                        player.height = 75; // Más alto
+                        player.width = 50; // Más ancho
+                        // Ajustar posición para que no quede flotando
+                        player.y -= (player.height - oldHeight);
+                        createParticles(player.x, player.y, '#75AADB');
+                        createParticles(player.x, player.y, '#FFFFFF');
+                    }
+                    
+                    createParticles(item.x, item.y, '#FFD700');
+                }
+            }
+            
+            // Actualizar partículas
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.life--;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+            
+            // Actualizar proyectiles (empanadas)
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let proj = projectiles[i];
+                proj.x += proj.vx;
+                proj.y += proj.vy;
+                proj.vy += 0.15; // Gravedad leve
+                
+                // Fuera de pantalla
+                if (proj.x < cameraX - 50 || proj.x > cameraX + canvas.width + 50 || proj.y > 600) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                
+                // Colisión con enemigos
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (checkCollision(proj, e)) {
+                        projectiles.splice(i, 1);
+                        e.hp--;
+                        createParticles(e.x + e.width/2, e.y, '#FF6600');
+                        playEnemyAudio(e.type); // Reproducir audio del enemigo
+                        
+                        if (e.hp <= 0) {
+                            enemies.splice(j, 1);
+                            score += e.isBoss ? 500 : 100;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // Actualizar proyectiles enemigos
+            for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+                let p = enemyProjectiles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Rotación para motosierras
+                if (p.type === 'motosierra') {
+                    p.angle = (p.angle || 0) + 0.3;
+                }
+                
+                // Fuera de pantalla
+                if (p.x < cameraX - 50 || p.x > cameraX + canvas.width + 50 || p.y > 600) {
+                    enemyProjectiles.splice(i, 1);
+                    continue;
+                }
+                
+                // Colisión con jugador
+                if (!player.invincible && 
+                    p.x > player.x && p.x < player.x + player.width &&
+                    p.y > player.y && p.y < player.y + player.height) {
+                    enemyProjectiles.splice(i, 1);
+                    playerHit();
+                }
+            }
+            
+            // Cámara sigue al jugador
+            const targetCameraX = player.x - canvas.width / 3;
+            cameraX += (targetCameraX - cameraX) * 0.1;
+            if (cameraX < 0) cameraX = 0;
+            if (cameraX > level.length - canvas.width) cameraX = level.length - canvas.width;
+            
+            // Verificar si llegó al final
+            if (player.x > level.length - 150 && enemies.filter(e => e.isBoss).length === 0) {
+                levelComplete();
+            }
+        }
+        
+        function jump() {
+            if (player.onGround) {
+                player.vy = JUMP_FORCE;
+                player.onGround = false;
+            }
+        }
+        
+        function checkCollision(a, b) {
+            return a.x < b.x + b.width &&
+                   a.x + a.width > b.x &&
+                   a.y < b.y + b.height &&
+                   a.y + a.height > b.y;
+        }
+        
+        function playerHit() {
+            if (player.invincible) return;
+            
+            // Si es grande, se achica en vez de perder vida
+            if (player.isGrande) {
+                player.isGrande = false;
+                player.height = 55; // Tamaño normal
+                player.width = 40;
+                player.invincible = true;
+                player.invincibleTimer = 120;
+                createParticles(player.x, player.y, '#FF0000');
+                return;
+            }
+            
+            player.lives--;
+            player.invincible = true;
+            player.invincibleTimer = 120; // 2 segundos
+            
+            if (player.lives <= 0) {
+                playerDie();
+            }
+        }
+        
+        function playerDie() {
+            gameRunning = false;
+            document.getElementById('mobileControls').classList.add('hidden');
+            document.getElementById('gameOverText').textContent = '¡Los liberales ganaron en ' + LEVELS[currentLevel].name + '!';
+            document.getElementById('finalScore').textContent = '🏆 ' + score;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+        
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: -Math.random() * 6,
+                    life: 30,
+                    color: color
+                });
+            }
+        }
+        
+        // =============================================
+        // RENDERIZADO
+        // =============================================
+        function draw() {
+            const level = LEVELS[currentLevel];
+            
+            // Fondo degradado
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, level.bgColor1);
+            gradient.addColorStop(1, level.bgColor2);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar montañas/decoración de fondo (parallax)
+            drawBackground(level);
+            
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+            
+            // Plataformas
+            for (let plat of platforms) {
+                if (plat.x + plat.width < cameraX - 50 || plat.x > cameraX + canvas.width + 50) continue;
+                
+                if (plat.type === 'ground') {
+                    ctx.fillStyle = level.groundColor;
+                    ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+                    // Pasto
+                    ctx.fillStyle = '#228B22';
+                    ctx.fillRect(plat.x, plat.y, plat.width, 8);
+                } else if (plat.type === 'platform') {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+                    ctx.fillStyle = '#A0522D';
+                    ctx.fillRect(plat.x, plat.y, plat.width, 5);
+                } else if (plat.type === 'block') {
+                    // Mate con bombilla - usar sprite
+                    const mateSprite = sprites.mate;
+                    if (mateSprite) {
+                        // Si tiene item, brillo dorado
+                        if (plat.hasItem) {
+                            ctx.fillStyle = 'rgba(255,215,0,0.3)';
+                            ctx.beginPath();
+                            ctx.arc(plat.x + plat.width/2, plat.y + plat.height/2, 25, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.drawImage(mateSprite, plat.x - 5, plat.y - 10, 50, 55);
+                    } else {
+                        // Fallback: dibujar mate simple
+                        ctx.fillStyle = plat.hasItem ? '#8B4513' : '#5a4a35';
+                        ctx.beginPath();
+                        ctx.arc(plat.x + plat.width/2, plat.y + plat.height/2 + 5, 18, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#3d2817';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                        if (plat.hasItem) {
+                            ctx.fillStyle = '#228B22';
+                            ctx.beginPath();
+                            ctx.arc(plat.x + plat.width/2, plat.y + plat.height/2, 12, Math.PI, 0);
+                            ctx.fill();
+                        }
+                        ctx.strokeStyle = '#C0C0C0';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(plat.x + plat.width/2 + 5, plat.y + 5);
+                        ctx.lineTo(plat.x + plat.width/2 + 12, plat.y - 10);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Items
+            for (let item of items) {
+                if (item.x < cameraX - 50 || item.x > cameraX + canvas.width + 50) continue;
+                
+                const bob = Math.sin(Date.now() / 200 + item.bobOffset) * 5;
+                
+                ctx.save();
+                ctx.translate(item.x, item.y + bob);
+                
+                if (item.type === 'dollar') {
+                    ctx.fillStyle = '#00AA00';
+                    ctx.font = 'bold 22px Arial';
+                    ctx.fillText('💵', -10, 10);
+                } else if (item.type === 'gold') {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#B8860B';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('$', 0, 5);
+                } else if (item.type === 'ticket') {
+                    ctx.fillStyle = '#FF69B4';
+                    ctx.font = 'bold 22px Arial';
+                    ctx.fillText('🎫', -10, 10);
+                } else if (item.type === 'empanada') {
+                    ctx.font = 'bold 22px Arial';
+                    ctx.fillText('🥟', -10, 10);
+                } else if (item.type === 'asado') {
+                    ctx.font = 'bold 26px Arial';
+                    ctx.fillText('🥩', -12, 12);
+                    // Brillo especial para el asado
+                    ctx.fillStyle = 'rgba(255,215,0,0.5)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 18 + Math.sin(Date.now()/100) * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (item.type === 'escarapela') {
+                    // Escarapela argentina - brilla!
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22 + Math.sin(Date.now()/80) * 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Usar sprite
+                    if (sprites.escarapela) {
+                        ctx.drawImage(sprites.escarapela, -17, -22, 35, 45);
+                    } else {
+                        // Fallback: Círculos celeste-blanco-celeste
+                        ctx.fillStyle = '#75AADB';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#75AADB';
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                
+                ctx.restore();
+            }
+            
+            // Enemigos
+            for (let e of enemies) {
+                if (e.x < cameraX - 100 || e.x > cameraX + canvas.width + 100) continue;
+                
+                drawEnemy(e);
+            }
+            
+            // Proyectiles
+            for (let proj of projectiles) {
+                ctx.save();
+                ctx.translate(proj.x, proj.y);
+                ctx.rotate(Date.now() / 100); // Rotación
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(proj.emoji, 0, 8);
+                ctx.restore();
+            }
+            
+            // Proyectiles enemigos
+            for (let p of enemyProjectiles) {
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                
+                if (p.type === 'motosierra') {
+                    ctx.rotate(p.angle || 0);
+                    // Dibujar motosierra
+                    if (sprites.motosierra) {
+                        ctx.drawImage(sprites.motosierra, -20, -15, 40, 30);
+                    } else {
+                        ctx.fillStyle = '#888';
+                        ctx.fillRect(-15, -5, 30, 10);
+                        ctx.fillStyle = '#FFD700';
+                        ctx.fillRect(-18, -8, 10, 16);
+                    }
+                } else if (p.type === 'gas') {
+                    ctx.fillStyle = 'rgba(100, 100, 100, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.font = '16px Arial';
+                    ctx.fillText('💨', -8, 5);
+                } else if (p.type === 'dolar') {
+                    ctx.font = 'bold 18px Arial';
+                    ctx.fillText('💸', -10, 5);
+                } else if (p.type === 'bandera_usa') {
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillText('🇺🇸', -12, 6);
+                } else if (p.type === 'torta') {
+                    ctx.font = 'bold 20px Arial';
+                    ctx.fillText('🎂', -12, 6);
+                } else if (p.type === 'goma') {
+                    // Goma de borrar
+                    if (sprites.goma) {
+                        ctx.drawImage(sprites.goma, -15, -10, 30, 20);
+                    } else {
+                        // Fallback: rectángulo celeste/rosa
+                        ctx.fillStyle = '#FF69B4';
+                        ctx.fillRect(-12, -6, 16, 12);
+                        ctx.fillStyle = '#00BFFF';
+                        ctx.fillRect(-12, -6, 8, 12);
+                    }
+                } else {
+                    // Proyectil genérico
+                    ctx.fillStyle = '#FF0000';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+            
+            // Jugador
+            drawPlayer();
+            
+            // Partículas
+            for (let p of particles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 30;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            
+            ctx.restore();
+            
+            // HUD
+            drawHUD(level);
+        }
+        
+        function drawBackground(level) {
+            // Montañas lejanas (parallax lento)
+            const parallax1 = cameraX * 0.2;
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            for (let i = 0; i < 5; i++) {
+                const x = i * 200 - (parallax1 % 200);
+                ctx.beginPath();
+                ctx.moveTo(x, 450);
+                ctx.lineTo(x + 100, 250);
+                ctx.lineTo(x + 200, 450);
+                ctx.fill();
+            }
+            
+            // Colinas cercanas (parallax medio)
+            const parallax2 = cameraX * 0.4;
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            for (let i = 0; i < 8; i++) {
+                const x = i * 150 - (parallax2 % 150);
+                ctx.beginPath();
+                ctx.moveTo(x, 450);
+                ctx.lineTo(x + 75, 350);
+                ctx.lineTo(x + 150, 450);
+                ctx.fill();
+            }
+        }
+        
+        function drawPlayer() {
+            const sprite = sprites[selectedCharacter];
+            
+            // Parpadeo si es invencible
+            if (player.invincible && Math.floor(Date.now() / 100) % 2 === 0) {
+                ctx.globalAlpha = 0.5;
+            }
+            
+            ctx.save();
+            
+            // Estos sprites miran a la IZQUIERDA por defecto
+            const spriteMiraIzquierda = ['maradona', 'hebe', 'kicillof', 'papa'];
+            const miraIzq = spriteMiraIzquierda.includes(selectedCharacter);
+            
+            // Si mira a la izquierda por defecto: voltear cuando va a la derecha
+            // Si mira a la derecha por defecto: voltear cuando va a la izquierda
+            const debeVoltear = miraIzq ? player.facingRight : !player.facingRight;
+            
+            if (debeVoltear) {
+                ctx.translate(player.x + player.width, 0);
+                ctx.scale(-1, 1);
+                ctx.translate(-player.x, 0);
+            }
+            
+            if (sprite) {
+                const scale = player.isGrande ? 0.95 : 0.7; // Más grande con escarapela
+                ctx.drawImage(sprite, 
+                    player.x - 5, 
+                    player.y + player.height - sprite.height * scale,
+                    sprite.width * scale, 
+                    sprite.height * scale
+                );
+                
+                // Aura celeste/blanca si es grande
+                if (player.isGrande) {
+                    ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 100) * 0.1;
+                    ctx.strokeStyle = '#75AADB';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(player.x - 3, player.y - 3, player.width + 6, player.height + 6);
+                    ctx.globalAlpha = 1;
+                }
+            } else {
+                // Fallback
+                ctx.fillStyle = player.isGrande ? '#FFD700' : '#75AADB';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+            
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+        
+        function drawEnemy(e) {
+            const sprite = sprites[e.type];
+            
+            ctx.save();
+            
+            // Enemigos miran a la izquierda por defecto (vienen hacia el jugador)
+            // Voltear solo cuando van hacia la derecha (direction > 0)
+            if (e.direction > 0) {
+                ctx.translate(e.x + e.width, 0);
+                ctx.scale(-1, 1);
+                ctx.translate(-e.x, 0);
+            }
+            
+            if (sprite) {
+                const scale = e.isBoss ? 0.9 : 0.65;
+                ctx.drawImage(sprite,
+                    e.x - 5,
+                    e.y + e.height - sprite.height * scale,
+                    sprite.width * scale,
+                    sprite.height * scale
+                );
+            } else {
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(e.x, e.y, e.width, e.height);
+            }
+            
+            // Barra de vida del boss
+            if (e.isBoss && e.hp > 0) {
+                ctx.fillStyle = '#333';
+                ctx.fillRect(e.x, e.y - 15, e.width, 8);
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(e.x, e.y - 15, e.width * (e.hp / 3), 8);
+            }
+            
+            ctx.restore();
+        }
+        
+        function drawHUD(level) {
+            // Fondo del HUD
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(0, 0, canvas.width, 50);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            
+            // Vidas
+            ctx.fillText('❤️'.repeat(player.lives), 10, 20);
+            
+            // Score
+            ctx.fillText('🏆 ' + score, 10, 40);
+            
+            // Items
+            ctx.fillText('💵' + dollars + ' 🪙' + gold + ' 🎫' + tickets, 100, 40);
+            
+            // Selector de proyectiles - mostrar todos
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText('Q◀ Munición ▶E', 280, 15);
+            
+            // Dibujar todos los proyectiles, resaltar el seleccionado
+            let projX = 280;
+            for (let i = 0; i < PROJECTILE_TYPES.length; i++) {
+                const p = PROJECTILE_TYPES[i];
+                const isSelected = (i === selectedProjectile);
+                
+                if (isSelected) {
+                    ctx.fillStyle = 'rgba(255,215,0,0.5)';
+                    ctx.fillRect(projX - 2, 22, 28, 26);
+                }
+                
+                ctx.font = isSelected ? 'bold 20px Arial' : '16px Arial';
+                ctx.globalAlpha = isSelected ? 1 : 0.5;
+                ctx.fillText(p.emoji, projX, 42);
+                ctx.globalAlpha = 1;
+                
+                projX += 30;
+            }
+            
+            // Nivel
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText(level.name, canvas.width - 10, 28);
+            
+            // Barra de progreso del nivel
+            const progress = player.x / level.length;
+            ctx.fillStyle = '#333';
+            ctx.fillRect(canvas.width - 110, 35, 100, 6);
+            ctx.fillStyle = '#75AADB';
+            ctx.fillRect(canvas.width - 110, 35, 100 * progress, 6);
+        }
+        
+        // =============================================
+        // GAME LOOP
+        // =============================================
+        function gameLoop() {
+            update();
+            draw();
+            
+            if (gameRunning) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // =============================================
+        // CONTROL DE JUEGO
+        // =============================================
+        
+        // Función para entrar en pantalla completa
+        function enterFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+        }
+        
+        function enterFullscreenAndStart() {
+            if (isMobile) {
+                enterFullscreen();
+            }
+            startGame();
+        }
+        
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            
+            // Activar pantalla de "rotá el celular" si está en móvil
+            if (isMobile) {
+                document.getElementById('rotateScreen').classList.add('show-when-playing');
+            }
+            
+            currentLevel = 0;
+            score = 0;
+            dollars = 0;
+            gold = 0;
+            tickets = 0;
+            showLevelScreen();
+        }
+        
+        function showLevelScreen() {
+            const level = LEVELS[currentLevel];
+            document.getElementById('levelTitle').textContent = 'NIVEL ' + (currentLevel + 1);
+            document.getElementById('levelName').textContent = level.name;
+            document.getElementById('levelDesc').textContent = level.subtitle;
+            document.getElementById('levelScreen').classList.remove('hidden');
+        }
+        
+        function startLevel() {
+            document.getElementById('levelScreen').classList.add('hidden');
+            
+            if (isMobile) {
+                document.getElementById('mobileControls').classList.remove('hidden');
+            }
+            
+            const level = LEVELS[currentLevel];
+            
+            // El personaje es el que eligió el usuario (no se cambia)
+            
+            // Reset jugador
+            player.x = 100;
+            player.y = 300;
+            player.vx = 0;
+            player.vy = 0;
+            player.lives = 3;
+            player.invincible = false;
+            player.onGround = false;
+            player.facingRight = true;
+            player.isGrande = false;
+            player.width = 40;
+            player.height = 55;
+            
+            // Reset proyectiles
+            projectiles = [];
+            enemyProjectiles = [];
+            
+            cameraX = 0;
+            
+            generateLevel(currentLevel);
+            
+            // Música del nivel
+            playMusica(currentLevel + 1);
+            
+            // Audio de inicio del personaje
+            playPlayerAudio('inicio');
+            
+            // Reset audios de enemigos (para que suenen 1 vez por nivel)
+            enemyAudioPlayed = {};
+            
+            gameRunning = true;
+            gamePaused = false;
+            gameLoop();
+        }
+        
+        function levelComplete() {
+            gameRunning = false;
+            stopMusica();
+            document.getElementById('mobileControls').classList.add('hidden');
+            
+            // Audio de victoria del personaje
+            playPlayerAudio('victoria');
+            
+            document.getElementById('completedLevelName').textContent = LEVELS[currentLevel].name + ' ES PERONISTA';
+            document.getElementById('dollarCount').textContent = dollars;
+            document.getElementById('goldCount').textContent = gold;
+            document.getElementById('ticketCount').textContent = tickets;
+            document.getElementById('totalScore').textContent = score;
+            
+            document.getElementById('levelCompleteScreen').classList.remove('hidden');
+        }
+        
+        function nextLevel() {
+            document.getElementById('levelCompleteScreen').classList.add('hidden');
+            currentLevel++;
+            
+            if (currentLevel >= LEVELS.length) {
+                // Victoria final
+                document.getElementById('finalTotalScore').textContent = score;
+                document.getElementById('victoryScreen').classList.remove('hidden');
+            } else {
+                showLevelScreen();
+            }
+        }
+        
+        function restartLevel() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            startLevel();
+        }
+        
+        function goToMenu() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('victoryScreen').classList.add('hidden');
+            document.getElementById('levelCompleteScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            
+            // Desactivar pantalla de rotar
+            document.getElementById('rotateScreen').classList.remove('show-when-playing');
+        }
+        
+        function togglePause() {
+            gamePaused = !gamePaused;
+        }
+        
+        function startInfiniteMode() {
+            window.location.href = 'tucumaninfinito.html';
+        }
+        
+        // Iniciar
+        init();
+    </script>
+</body>
+</html>
