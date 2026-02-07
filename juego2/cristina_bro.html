@@ -620,43 +620,69 @@
             playerAudios[name + '_victoria'].volume = 0.55;
         });
         
-        let enemyAudioPlayed = {}; // Para que cada enemigo suene solo 1 vez
+        // SISTEMA DE AUDIO DE ENEMIGOS MEJORADO
+        // Trackea por audioKey específico (ej: 'majul2') con cooldown de 4 segundos
+        // Así si hay 3 majul, cada uno puede sonar con un audio diferente
+        let enemyAudioPlayed = {};
         
         function playEnemyAudio(enemyType) {
             if (!audioEnabled) return;
             if (mainAudioPlaying) return; // No interrumpir audio del personaje
-            if (enemyAudioPlayed[enemyType]) return; // Ya sonó
             
             let audioKey = enemyType;
             
             // Algunos tienen variantes aleatorias
             if (enemyType === 'majul') {
-                audioKey = ['majul', 'majul2', 'majul3'][Math.floor(Math.random() * 3)];
+                // Buscar una variante que no esté en cooldown
+                const variants = ['majul', 'majul2', 'majul3'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return; // Todas en cooldown
+                audioKey = available[Math.floor(Math.random() * available.length)];
             } else if (enemyType === 'feinmann') {
-                audioKey = ['feinmann', 'feinmann1', 'feinmann2'][Math.floor(Math.random() * 3)];
+                const variants = ['feinmann', 'feinmann1', 'feinmann2'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return;
+                audioKey = available[Math.floor(Math.random() * available.length)];
             } else if (enemyType === 'lanata') {
-                audioKey = ['lanata', 'lanata1', 'lanata2'][Math.floor(Math.random() * 3)];
+                const variants = ['lanata', 'lanata1', 'lanata2'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return;
+                audioKey = available[Math.floor(Math.random() * available.length)];
             } else if (enemyType === 'milei') {
-                audioKey = ['milei_jocker', 'milei1', 'milei2'][Math.floor(Math.random() * 3)];
+                const variants = ['milei_jocker', 'milei1', 'milei2'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return;
+                audioKey = available[Math.floor(Math.random() * available.length)];
             } else if (enemyType === 'karina') {
-                audioKey = ['karina', 'karina1', 'karina2'][Math.floor(Math.random() * 3)];
+                const variants = ['karina', 'karina1', 'karina2'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return;
+                audioKey = available[Math.floor(Math.random() * available.length)];
             } else if (enemyType === 'trebuc') {
-                audioKey = ['trebuc', 'trebuc1', 'trebuc2'][Math.floor(Math.random() * 3)];
+                const variants = ['trebuc', 'trebuc1', 'trebuc2'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return;
+                audioKey = available[Math.floor(Math.random() * available.length)];
             } else if (enemyType === 'adorni') {
-                audioKey = ['adorni', 'adorni1'][Math.floor(Math.random() * 2)];
+                const variants = ['adorni', 'adorni1'];
+                const available = variants.filter(v => !enemyAudioPlayed[v]);
+                if (available.length === 0) return;
+                audioKey = available[Math.floor(Math.random() * available.length)];
+            } else {
+                // Enemigos sin variantes: cooldown por audioKey
+                if (enemyAudioPlayed[audioKey]) return;
             }
             
             if (enemyAudios[audioKey]) {
                 try {
                     enemyAudios[audioKey].currentTime = 0;
                     enemyAudios[audioKey].play().catch(e => {});
-                    enemyAudioPlayed[enemyType] = true;
+                    // Cooldown de 4 segundos para este audio específico
+                    enemyAudioPlayed[audioKey] = true;
+                    setTimeout(() => { delete enemyAudioPlayed[audioKey]; }, 4000);
                 } catch(e) {}
             }
         }
-        
-        // Control de qué personajes ya dijeron su frase de inicio
-        let playerInicioPlayed = {};
         
         // Control para que audios principales no se interrumpan
         let mainAudioPlaying = false;
@@ -668,18 +694,12 @@
         function playPlayerAudio(tipo) {
             if (!audioEnabled) return;
             
-            // Si es audio de inicio, solo reproducir la primera vez
-            if (tipo === 'inicio') {
-                if (playerInicioPlayed[selectedCharacter]) {
-                    return; // Ya sonó, no repetir
-                }
-                playerInicioPlayed[selectedCharacter] = true;
-            }
-            
             const key = selectedCharacter + '_' + tipo;
             if (playerAudios[key]) {
                 try {
                     mainAudioPlaying = true; // Bloquear audios de villanos
+                    // Seguridad: desbloquear después de 6 segundos por si el audio falla
+                    setTimeout(() => { mainAudioPlaying = false; }, 6000);
                     playerAudios[key].currentTime = 0;
                     playerAudios[key].onended = onMainAudioEnd; // Desbloquear al terminar
                     playerAudios[key].play().catch(e => {
@@ -732,8 +752,6 @@
             
             const proj = PROJECTILE_TYPES[selectedProjectile];
             const direction = player.facingRight ? 1 : -1;
-            
-            console.log('Disparando:', proj.emoji, 'Dirección:', direction);
             
             projectiles.push({
                 x: player.x + player.width / 2,
@@ -934,12 +952,10 @@
                 }
             }
             
-            // Enemigos - más cantidad para que no esté vacío
-            // Nivel 1: enemigos moderados, espaciados
-            // Nivel 10: muchos enemigos, más juntos, rápidos
-            const baseSpacing = 500 - (levelIndex * 30); // 500 en nivel 1, 200 en nivel 10
-            const spacingVariation = 300 - (levelIndex * 25); // Más variación al principio
-            const enemyChance = 0.6 + (levelIndex * 0.04); // 60% en nivel 1, 96% en nivel 10
+            // Enemigos
+            const baseSpacing = 500 - (levelIndex * 30);
+            const spacingVariation = 300 - (levelIndex * 25);
+            const enemyChance = 0.6 + (levelIndex * 0.04);
             
             for (let x = 600; x < level.length - 400; x += baseSpacing + Math.random() * spacingVariation) {
                 if (Math.random() < enemyChance) {
@@ -947,21 +963,21 @@
                 }
             }
             
-            // Boss al final - más HP en niveles avanzados
+            // Boss al final
             enemies.push({
                 x: level.length - 300,
                 y: 390,
                 width: 50,
                 height: 60,
-                vx: -0.3 - (levelIndex * 0.1), // Más lento al principio
+                vx: -0.3 - (levelIndex * 0.1),
                 type: level.bossType,
                 isBoss: true,
-                hp: 2 + Math.floor(levelIndex / 2), // 2 HP nivel 1, 3 HP nivel 3, etc.
+                hp: 2 + Math.floor(levelIndex / 2),
                 direction: -1
             });
             
-            // Items en el suelo - más items en niveles difíciles para compensar
-            const itemChance = 0.5 - (levelIndex * 0.03); // Más items al principio
+            // Items en el suelo
+            const itemChance = 0.5 - (levelIndex * 0.03);
             for (let x = 200; x < level.length - 200; x += 120 + Math.random() * 150) {
                 if (Math.random() > itemChance) {
                     spawnItem(x, 420, level.length);
@@ -969,10 +985,7 @@
             }
             
             // Escarapelas fijas (power-up)
-            // Niveles 1-5: 1 escarapela al 70% del nivel
-            // Niveles 6-10: 2-3 escarapelas distribuidas
             if (levelIndex < 5) {
-                // 1 escarapela
                 items.push({
                     x: level.length * 0.7,
                     y: 320,
@@ -983,7 +996,6 @@
                     bobOffset: Math.random() * Math.PI * 2
                 });
             } else {
-                // 2-3 escarapelas
                 const cantEscarapelas = levelIndex >= 8 ? 3 : 2;
                 const posiciones = [0.4, 0.6, 0.8];
                 for (let i = 0; i < cantEscarapelas; i++) {
@@ -1003,8 +1015,7 @@
         function spawnEnemy(x, enemyTypes, levelIndex) {
             const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
             
-            // Velocidad según nivel: más lentos al principio
-            const baseSpeed = 0.5 + (levelIndex * 0.15); // 0.5 nivel 1, 1.85 nivel 10
+            const baseSpeed = 0.5 + (levelIndex * 0.15);
             const speedVariation = Math.random() * 0.5;
             
             enemies.push({
@@ -1034,10 +1045,10 @@
                 type = 'ticket';
                 points = 100;
             } else if (rand < 0.94) {
-                type = 'empanada'; // +1 vida
+                type = 'empanada';
                 points = 0;
             } else {
-                type = 'asado'; // +2 vidas (muy raro - 6%)
+                type = 'asado';
                 points = 0;
             }
             
@@ -1108,13 +1119,11 @@
             player.onGround = false;
             for (let plat of platforms) {
                 if (checkCollision(player, plat)) {
-                    // Cayendo sobre plataforma
                     if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 10) {
                         player.y = plat.y - player.height;
                         player.vy = 0;
                         player.onGround = true;
                     }
-                    // Golpeando bloque desde abajo
                     else if (player.vy < 0 && plat.type === 'block') {
                         player.y = plat.y + plat.height;
                         player.vy = 0;
@@ -1124,7 +1133,6 @@
                             createParticles(plat.x + plat.width/2, plat.y, '#FFD700');
                         }
                     }
-                    // Colisión lateral
                     else if (player.vy >= 0) {
                         if (player.vx > 0) player.x = plat.x - player.width;
                         else if (player.vx < 0) player.x = plat.x + plat.width;
@@ -1150,10 +1158,8 @@
             for (let i = enemies.length - 1; i >= 0; i--) {
                 let e = enemies[i];
                 
-                // Mover enemigo
                 e.x += e.vx;
                 
-                // Cambiar dirección en bordes
                 if (e.x < cameraX - 50) {
                     e.vx = Math.abs(e.vx);
                     e.direction = 1;
@@ -1163,14 +1169,13 @@
                     e.direction = -1;
                 }
                 
-                // Enemigos disparan - menos frecuente en niveles bajos
+                // Enemigos disparan
                 if (!e.lastShot) e.lastShot = 0;
-                const shootDelay = 4000 - (currentLevel * 200); // 4 seg nivel 1, 2 seg nivel 10
+                const shootDelay = 4000 - (currentLevel * 200);
                 const shootChance = e.isBoss ? (0.01 + currentLevel * 0.003) : (0.002 + currentLevel * 0.001);
                 if (Date.now() - e.lastShot > shootDelay && Math.random() < shootChance) {
                     e.lastShot = Date.now();
                     
-                    // Tipo de proyectil según enemigo
                     let projType = 'goma';
                     if (e.type === 'milei') projType = 'motosierra';
                     else if (e.type === 'bullrich') projType = 'gas';
@@ -1178,7 +1183,6 @@
                     else if (e.type === 'trump') projType = 'bandera_usa';
                     else if (e.type === 'karina') projType = 'torta';
                     
-                    // Calcular dirección hacia el jugador
                     const dx = player.x - e.x;
                     const dy = player.y - e.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1195,19 +1199,17 @@
                 
                 // Colisión con jugador
                 if (!player.invincible && checkCollision(player, e)) {
-                    // Saltar sobre enemigo
                     if (player.vy > 0 && player.y + player.height < e.y + e.height/2 + 10) {
                         e.hp--;
-                        player.vy = -10; // Rebote
+                        player.vy = -10;
                         createParticles(e.x + e.width/2, e.y, '#FF0000');
-                        playEnemyAudio(e.type); // Reproducir audio del enemigo
+                        playEnemyAudio(e.type);
                         
                         if (e.hp <= 0) {
                             enemies.splice(i, 1);
                             score += e.isBoss ? 500 : 100;
                         }
                     } else {
-                        // Daño al jugador
                         playerHit();
                     }
                 }
@@ -1234,12 +1236,10 @@
                     } else if (item.type === 'asado') {
                         player.lives = Math.min(player.lives + 2, 5);
                     } else if (item.type === 'escarapela') {
-                        // ¡Te hace grande!
                         player.isGrande = true;
                         const oldHeight = player.height;
-                        player.height = 75; // Más alto
-                        player.width = 50; // Más ancho
-                        // Ajustar posición para que no quede flotando
+                        player.height = 75;
+                        player.width = 50;
                         player.y -= (player.height - oldHeight);
                         createParticles(player.x, player.y, '#75AADB');
                         createParticles(player.x, player.y, '#FFFFFF');
@@ -1259,27 +1259,25 @@
                 if (p.life <= 0) particles.splice(i, 1);
             }
             
-            // Actualizar proyectiles (empanadas)
+            // Actualizar proyectiles del jugador
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 let proj = projectiles[i];
                 proj.x += proj.vx;
                 proj.y += proj.vy;
-                proj.vy += 0.15; // Gravedad leve
+                proj.vy += 0.15;
                 
-                // Fuera de pantalla
                 if (proj.x < cameraX - 50 || proj.x > cameraX + canvas.width + 50 || proj.y > 600) {
                     projectiles.splice(i, 1);
                     continue;
                 }
                 
-                // Colisión con enemigos
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     let e = enemies[j];
                     if (checkCollision(proj, e)) {
                         projectiles.splice(i, 1);
                         e.hp--;
                         createParticles(e.x + e.width/2, e.y, '#FF6600');
-                        playEnemyAudio(e.type); // Reproducir audio del enemigo
+                        playEnemyAudio(e.type);
                         
                         if (e.hp <= 0) {
                             enemies.splice(j, 1);
@@ -1296,18 +1294,15 @@
                 p.x += p.vx;
                 p.y += p.vy;
                 
-                // Rotación para motosierras
                 if (p.type === 'motosierra') {
                     p.angle = (p.angle || 0) + 0.3;
                 }
                 
-                // Fuera de pantalla
                 if (p.x < cameraX - 50 || p.x > cameraX + canvas.width + 50 || p.y > 600) {
                     enemyProjectiles.splice(i, 1);
                     continue;
                 }
                 
-                // Colisión con jugador
                 if (!player.invincible && 
                     p.x > player.x && p.x < player.x + player.width &&
                     p.y > player.y && p.y < player.y + player.height) {
@@ -1345,10 +1340,9 @@
         function playerHit() {
             if (player.invincible) return;
             
-            // Si es grande, se achica en vez de perder vida
             if (player.isGrande) {
                 player.isGrande = false;
-                player.height = 55; // Tamaño normal
+                player.height = 55;
                 player.width = 40;
                 player.invincible = true;
                 player.invincibleTimer = 120;
@@ -1358,7 +1352,7 @@
             
             player.lives--;
             player.invincible = true;
-            player.invincibleTimer = 120; // 2 segundos
+            player.invincibleTimer = 120;
             
             if (player.lives <= 0) {
                 playerDie();
@@ -1392,14 +1386,12 @@
         function draw() {
             const level = LEVELS[currentLevel];
             
-            // Fondo degradado
             const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             gradient.addColorStop(0, level.bgColor1);
             gradient.addColorStop(1, level.bgColor2);
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Dibujar montañas/decoración de fondo (parallax)
             drawBackground(level);
             
             ctx.save();
@@ -1412,7 +1404,6 @@
                 if (plat.type === 'ground') {
                     ctx.fillStyle = level.groundColor;
                     ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
-                    // Pasto
                     ctx.fillStyle = '#228B22';
                     ctx.fillRect(plat.x, plat.y, plat.width, 8);
                 } else if (plat.type === 'platform') {
@@ -1421,10 +1412,8 @@
                     ctx.fillStyle = '#A0522D';
                     ctx.fillRect(plat.x, plat.y, plat.width, 5);
                 } else if (plat.type === 'block') {
-                    // Mate con bombilla - usar sprite
                     const mateSprite = sprites.mate;
                     if (mateSprite) {
-                        // Si tiene item, brillo dorado
                         if (plat.hasItem) {
                             ctx.fillStyle = 'rgba(255,215,0,0.3)';
                             ctx.beginPath();
@@ -1433,7 +1422,6 @@
                         }
                         ctx.drawImage(mateSprite, plat.x - 5, plat.y - 10, 50, 55);
                     } else {
-                        // Fallback: dibujar mate simple
                         ctx.fillStyle = plat.hasItem ? '#8B4513' : '#5a4a35';
                         ctx.beginPath();
                         ctx.arc(plat.x + plat.width/2, plat.y + plat.height/2 + 5, 18, 0, Math.PI * 2);
@@ -1489,22 +1477,18 @@
                 } else if (item.type === 'asado') {
                     ctx.font = 'bold 26px Arial';
                     ctx.fillText('🥩', -12, 12);
-                    // Brillo especial para el asado
                     ctx.fillStyle = 'rgba(255,215,0,0.5)';
                     ctx.beginPath();
                     ctx.arc(0, 0, 18 + Math.sin(Date.now()/100) * 3, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (item.type === 'escarapela') {
-                    // Escarapela argentina - brilla!
                     ctx.fillStyle = 'rgba(255,255,255,0.5)';
                     ctx.beginPath();
                     ctx.arc(0, 0, 22 + Math.sin(Date.now()/80) * 4, 0, Math.PI * 2);
                     ctx.fill();
-                    // Usar sprite
                     if (sprites.escarapela) {
                         ctx.drawImage(sprites.escarapela, -17, -22, 35, 45);
                     } else {
-                        // Fallback: Círculos celeste-blanco-celeste
                         ctx.fillStyle = '#75AADB';
                         ctx.beginPath();
                         ctx.arc(0, 0, 14, 0, Math.PI * 2);
@@ -1526,7 +1510,6 @@
             // Enemigos
             for (let e of enemies) {
                 if (e.x < cameraX - 100 || e.x > cameraX + canvas.width + 100) continue;
-                
                 drawEnemy(e);
             }
             
@@ -1534,7 +1517,7 @@
             for (let proj of projectiles) {
                 ctx.save();
                 ctx.translate(proj.x, proj.y);
-                ctx.rotate(Date.now() / 100); // Rotación
+                ctx.rotate(Date.now() / 100);
                 ctx.font = 'bold 24px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(proj.emoji, 0, 8);
@@ -1548,7 +1531,6 @@
                 
                 if (p.type === 'motosierra') {
                     ctx.rotate(p.angle || 0);
-                    // Dibujar motosierra
                     if (sprites.motosierra) {
                         ctx.drawImage(sprites.motosierra, -20, -15, 40, 30);
                     } else {
@@ -1574,18 +1556,15 @@
                     ctx.font = 'bold 20px Arial';
                     ctx.fillText('🎂', -12, 6);
                 } else if (p.type === 'goma') {
-                    // Goma de borrar
                     if (sprites.goma) {
                         ctx.drawImage(sprites.goma, -15, -10, 30, 20);
                     } else {
-                        // Fallback: rectángulo celeste/rosa
                         ctx.fillStyle = '#FF69B4';
                         ctx.fillRect(-12, -6, 16, 12);
                         ctx.fillStyle = '#00BFFF';
                         ctx.fillRect(-12, -6, 8, 12);
                     }
                 } else {
-                    // Proyectil genérico
                     ctx.fillStyle = '#FF0000';
                     ctx.beginPath();
                     ctx.arc(0, 0, 6, 0, Math.PI * 2);
@@ -1615,7 +1594,6 @@
         }
         
         function drawBackground(level) {
-            // Montañas lejanas (parallax lento)
             const parallax1 = cameraX * 0.2;
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
             for (let i = 0; i < 5; i++) {
@@ -1627,7 +1605,6 @@
                 ctx.fill();
             }
             
-            // Colinas cercanas (parallax medio)
             const parallax2 = cameraX * 0.4;
             ctx.fillStyle = 'rgba(0,0,0,0.15)';
             for (let i = 0; i < 8; i++) {
@@ -1643,19 +1620,14 @@
         function drawPlayer() {
             const sprite = sprites[selectedCharacter];
             
-            // Parpadeo si es invencible
             if (player.invincible && Math.floor(Date.now() / 100) % 2 === 0) {
                 ctx.globalAlpha = 0.5;
             }
             
             ctx.save();
             
-            // Estos sprites miran a la IZQUIERDA por defecto
             const spriteMiraIzquierda = ['maradona', 'hebe', 'kicillof', 'papa'];
             const miraIzq = spriteMiraIzquierda.includes(selectedCharacter);
-            
-            // Si mira a la izquierda por defecto: voltear cuando va a la derecha
-            // Si mira a la derecha por defecto: voltear cuando va a la izquierda
             const debeVoltear = miraIzq ? player.facingRight : !player.facingRight;
             
             if (debeVoltear) {
@@ -1665,7 +1637,7 @@
             }
             
             if (sprite) {
-                const scale = player.isGrande ? 0.95 : 0.7; // Más grande con escarapela
+                const scale = player.isGrande ? 0.95 : 0.7;
                 ctx.drawImage(sprite, 
                     player.x - 5, 
                     player.y + player.height - sprite.height * scale,
@@ -1673,7 +1645,6 @@
                     sprite.height * scale
                 );
                 
-                // Aura celeste/blanca si es grande
                 if (player.isGrande) {
                     ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 100) * 0.1;
                     ctx.strokeStyle = '#75AADB';
@@ -1682,7 +1653,6 @@
                     ctx.globalAlpha = 1;
                 }
             } else {
-                // Fallback
                 ctx.fillStyle = player.isGrande ? '#FFD700' : '#75AADB';
                 ctx.fillRect(player.x, player.y, player.width, player.height);
             }
@@ -1696,8 +1666,6 @@
             
             ctx.save();
             
-            // Enemigos miran a la izquierda por defecto (vienen hacia el jugador)
-            // Voltear solo cuando van hacia la derecha (direction > 0)
             if (e.direction > 0) {
                 ctx.translate(e.x + e.width, 0);
                 ctx.scale(-1, 1);
@@ -1717,7 +1685,6 @@
                 ctx.fillRect(e.x, e.y, e.width, e.height);
             }
             
-            // Barra de vida del boss
             if (e.isBoss && e.hp > 0) {
                 ctx.fillStyle = '#333';
                 ctx.fillRect(e.x, e.y - 15, e.width, 8);
@@ -1729,7 +1696,6 @@
         }
         
         function drawHUD(level) {
-            // Fondo del HUD
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.fillRect(0, 0, canvas.width, 50);
             
@@ -1737,21 +1703,14 @@
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'left';
             
-            // Vidas
             ctx.fillText('❤️'.repeat(player.lives), 10, 20);
-            
-            // Score
             ctx.fillText('🏆 ' + score, 10, 40);
-            
-            // Items
             ctx.fillText('💵' + dollars + ' 🪙' + gold + ' 🎫' + tickets, 100, 40);
             
-            // Selector de proyectiles - mostrar todos
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 12px Arial';
             ctx.fillText('Q◀ Munición ▶E', 280, 15);
             
-            // Dibujar todos los proyectiles, resaltar el seleccionado
             let projX = 280;
             for (let i = 0; i < PROJECTILE_TYPES.length; i++) {
                 const p = PROJECTILE_TYPES[i];
@@ -1770,12 +1729,10 @@
                 projX += 30;
             }
             
-            // Nivel
             ctx.textAlign = 'right';
             ctx.fillStyle = '#FFD700';
             ctx.fillText(level.name, canvas.width - 10, 28);
             
-            // Barra de progreso del nivel
             const progress = player.x / level.length;
             ctx.fillStyle = '#333';
             ctx.fillRect(canvas.width - 110, 35, 100, 6);
@@ -1798,15 +1755,13 @@
         // =============================================
         // CONTROL DE JUEGO
         // =============================================
-        
-        // Función para entrar en pantalla completa
         function enterFullscreen() {
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
                 elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) { /* Safari */
+            } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { /* IE11 */
+            } else if (elem.msRequestFullscreen) {
                 elem.msRequestFullscreen();
             }
         }
@@ -1821,7 +1776,6 @@
         function startGame() {
             document.getElementById('startScreen').classList.add('hidden');
             
-            // Activar pantalla de "rotá el celular" si está en móvil
             if (isMobile) {
                 document.getElementById('rotateScreen').classList.add('show-when-playing');
             }
@@ -1851,8 +1805,6 @@
             
             const level = LEVELS[currentLevel];
             
-            // El personaje es el que eligió el usuario (no se cambia)
-            
             // Reset jugador
             player.x = 100;
             player.y = 300;
@@ -1866,7 +1818,6 @@
             player.width = 40;
             player.height = 55;
             
-            // Reset proyectiles
             projectiles = [];
             enemyProjectiles = [];
             
@@ -1877,11 +1828,13 @@
             // Música del nivel
             playMusica(currentLevel + 1);
             
-            // Audio de inicio del personaje
+            // Audio de inicio del personaje (suena en CADA nivel)
             playPlayerAudio('inicio');
             
-            // Reset audios de enemigos (para que suenen 1 vez por nivel)
+            // Reset audios de enemigos para el nuevo nivel
             enemyAudioPlayed = {};
+            // Reset mainAudioPlaying por seguridad
+            // (se desbloqueará cuando termine el audio del personaje)
             
             gameRunning = true;
             gamePaused = false;
@@ -1910,7 +1863,6 @@
             currentLevel++;
             
             if (currentLevel >= LEVELS.length) {
-                // Victoria final
                 document.getElementById('finalTotalScore').textContent = score;
                 document.getElementById('victoryScreen').classList.remove('hidden');
             } else {
@@ -1929,7 +1881,6 @@
             document.getElementById('levelCompleteScreen').classList.add('hidden');
             document.getElementById('startScreen').classList.remove('hidden');
             
-            // Desactivar pantalla de rotar
             document.getElementById('rotateScreen').classList.remove('show-when-playing');
         }
         
