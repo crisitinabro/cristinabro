@@ -620,10 +620,22 @@
             playerAudios[name + '_victoria'].volume = 0.55;
         });
         
-        // SISTEMA DE AUDIO DE ENEMIGOS MEJORADO
-        // Trackea por audioKey específico (ej: 'majul2') con cooldown de 4 segundos
-        // Así si hay 3 majul, cada uno puede sonar con un audio diferente
+        // SISTEMA DE AUDIO DE ENEMIGOS
+        // - Villano con 1 audio: suena 1 sola vez por nivel
+        // - Villano con N audios: cada muerte usa un audio diferente, máximo N veces por nivel
+        // Se resetea al empezar cada nivel con enemyAudioPlayed = {}
         let enemyAudioPlayed = {};
+        
+        // Mapa de variantes por tipo de enemigo
+        const ENEMY_AUDIO_VARIANTS = {
+            'majul': ['majul', 'majul2', 'majul3'],
+            'feinmann': ['feinmann', 'feinmann1', 'feinmann2'],
+            'lanata': ['lanata', 'lanata1', 'lanata2'],
+            'milei': ['milei_jocker', 'milei1', 'milei2'],
+            'karina': ['karina', 'karina1', 'karina2'],
+            'trebuc': ['trebuc', 'trebuc1', 'trebuc2'],
+            'adorni': ['adorni', 'adorni1']
+        };
         
         function playEnemyAudio(enemyType) {
             if (!audioEnabled) return;
@@ -631,55 +643,23 @@
             
             let audioKey = enemyType;
             
-            // Algunos tienen variantes aleatorias
-            if (enemyType === 'majul') {
-                // Buscar una variante que no esté en cooldown
-                const variants = ['majul', 'majul2', 'majul3'];
+            if (ENEMY_AUDIO_VARIANTS[enemyType]) {
+                // Tiene variantes: buscar una que NO se haya usado aún en este nivel
+                const variants = ENEMY_AUDIO_VARIANTS[enemyType];
                 const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return; // Todas en cooldown
-                audioKey = available[Math.floor(Math.random() * available.length)];
-            } else if (enemyType === 'feinmann') {
-                const variants = ['feinmann', 'feinmann1', 'feinmann2'];
-                const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return;
-                audioKey = available[Math.floor(Math.random() * available.length)];
-            } else if (enemyType === 'lanata') {
-                const variants = ['lanata', 'lanata1', 'lanata2'];
-                const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return;
-                audioKey = available[Math.floor(Math.random() * available.length)];
-            } else if (enemyType === 'milei') {
-                const variants = ['milei_jocker', 'milei1', 'milei2'];
-                const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return;
-                audioKey = available[Math.floor(Math.random() * available.length)];
-            } else if (enemyType === 'karina') {
-                const variants = ['karina', 'karina1', 'karina2'];
-                const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return;
-                audioKey = available[Math.floor(Math.random() * available.length)];
-            } else if (enemyType === 'trebuc') {
-                const variants = ['trebuc', 'trebuc1', 'trebuc2'];
-                const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return;
-                audioKey = available[Math.floor(Math.random() * available.length)];
-            } else if (enemyType === 'adorni') {
-                const variants = ['adorni', 'adorni1'];
-                const available = variants.filter(v => !enemyAudioPlayed[v]);
-                if (available.length === 0) return;
+                if (available.length === 0) return; // Ya se usaron todas, no suena más
                 audioKey = available[Math.floor(Math.random() * available.length)];
             } else {
-                // Enemigos sin variantes: cooldown por audioKey
-                if (enemyAudioPlayed[audioKey]) return;
+                // Sin variantes: suena 1 sola vez por nivel
+                if (enemyAudioPlayed[enemyType]) return;
             }
             
             if (enemyAudios[audioKey]) {
                 try {
                     enemyAudios[audioKey].currentTime = 0;
                     enemyAudios[audioKey].play().catch(e => {});
-                    // Cooldown de 4 segundos para este audio específico
+                    // Marcar como usado para este nivel (sin timeout, permanente hasta reset)
                     enemyAudioPlayed[audioKey] = true;
-                    setTimeout(() => { delete enemyAudioPlayed[audioKey]; }, 4000);
                 } catch(e) {}
             }
         }
@@ -1626,7 +1606,7 @@
             
             ctx.save();
             
-            const spriteMiraIzquierda = ['maradona', 'hebe', 'kicillof', 'papa'];
+            const spriteMiraIzquierda = ['maradona', 'hebe', 'kicillof', 'papa', 'gato'];
             const miraIzq = spriteMiraIzquierda.includes(selectedCharacter);
             const debeVoltear = miraIzq ? player.facingRight : !player.facingRight;
             
