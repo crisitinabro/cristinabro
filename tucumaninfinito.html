@@ -173,12 +173,12 @@ function generateWorld(upToX) {
     while (worldGenX < upToX) {
         // Base ground elevation drops (goes up) as we progress
         // Every 400px horizontal = ~30px higher
-        let baseY = cv.height - 100 - (worldGenX / GOAL_DIST) * (cv.height * 2.5);
+        let baseY = cv.height - 100 - (worldGenX / GOAL_DIST) * (cv.height * 0.8);
 
-        // Ground segment (not always present - gaps!)
-        let hasGround = Math.random() > 0.15 || worldGenX < 300;
+        // Ground segment (mostly present, small gaps occasionally)
+        let hasGround = Math.random() > 0.08 || worldGenX < 600;
         if (hasGround) {
-            let gw = 80 + Math.random() * 160;
+            let gw = 120 + Math.random() * 200;
             platforms.push({
                 x: worldGenX, y: baseY, w: gw, h: 18,
                 tp: 'ground', mv: null
@@ -189,7 +189,7 @@ function generateWorld(upToX) {
         let numPlats = 1 + ~~(Math.random() * 3);
         for (let i = 0; i < numPlats; i++) {
             let px = worldGenX + Math.random() * 180;
-            let py = baseY - 60 - Math.random() * 200;
+            let py = baseY - 50 - Math.random() * 120;
             let pw = 55 + Math.random() * 70;
             let isLava = Math.random() > 0.9;
             let mvType = null;
@@ -647,8 +647,8 @@ function draw() {
 
 function drawCasaRosada() {
     let cx2 = GOAL_DIST - 100;
-    let baseY = cv.height - 100 - (GOAL_DIST / GOAL_DIST) * (cv.height * 2.5);
-    let crY = baseY - 200;
+    let baseY = cv.height - 100 - (GOAL_DIST / GOAL_DIST) * (cv.height * 0.8);
+    let crY = baseY - 180;
     let crW = 250, crH = 200;
 
     if (sp.balcon) {
@@ -747,8 +747,9 @@ function drawEnemy(e) {
     if (e.tp === 1) { sn = ['majul','feinmann','gordo_dan','viale','trebuc','lanata'][e.pi||0]; }
     if (sn && sp[sn]) {
         let img = sp[sn];
-        let scale = e.tp === 15 ? 0.8 : 0.6;
-        let iw = img.width * scale, ih = img.height * scale;
+        // Fixed draw size, not based on img.width (PNGs can be huge)
+        let iw = e.tp === 15 ? 50 : 40;
+        let ih = e.tp === 15 ? 60 : 50;
         cx.drawImage(img, e.x + e.w/2 - iw/2, e.y + e.h - ih, iw, ih);
     } else {
         cx.fillStyle = e.tp === 15 ? '#4A6B8A' : '#8B008B';
