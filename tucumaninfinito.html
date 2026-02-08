@@ -175,10 +175,10 @@ function generateWorld(upToX) {
         // Every 400px horizontal = ~30px higher
         let baseY = cv.height - 100 - (worldGenX / GOAL_DIST) * (cv.height * 0.8);
 
-        // Ground segment (mostly present, small gaps occasionally)
-        let hasGround = Math.random() > 0.08 || worldGenX < 600;
+        // Ground segment (almost always present)
+        let hasGround = Math.random() > 0.05 || worldGenX < 800;
         if (hasGround) {
-            let gw = 120 + Math.random() * 200;
+            let gw = 150 + Math.random() * 250;
             platforms.push({
                 x: worldGenX, y: baseY, w: gw, h: 18,
                 tp: 'ground', mv: null
@@ -253,7 +253,7 @@ function startGame() {
     tRem = 300; tStart = Date.now();
     worldGenX = 0;
 
-    P.x = 100; P.y = cv.height - 200;
+    P.x = 100; P.y = cv.height - 160;
     P.vx = 0; P.vy = 0; P.og = false; P.jp = false;
     P.sa = false; P.se = 100; P.fr = true;
 
@@ -261,11 +261,11 @@ function startGame() {
     platforms = []; enemies = []; proj = []; eProj = []; parts = [];
     lOff = 0;
 
+    // Starting ground - big and safe
+    platforms.push({x: -50, y: cv.height - 100, w: 500, h: 30, tp: 'ground', mv: null});
+
     // Generate initial world
     generateWorld(cv.width + 400);
-
-    // Starting ground
-    platforms.unshift({x: 0, y: cv.height - 100, w: 300, h: 20, tp: 'ground', mv: null});
 
     playMus();
     $('SS').classList.add('hd'); $('GO').classList.add('hd'); $('VI').classList.add('hd');
@@ -370,21 +370,34 @@ function update() {
         }
     }
 
-    // Fall into abyss
-    if (P.y > cam.y + cv.height + 100) {
-        takeDmg();
-        if (!gRun) return;
-        // Respawn on nearest platform above
-        let best = null, bestDist = Infinity;
+    // Fall into abyss - lose 1 life and respawn (like Mario)
+    if (P.y > cam.y + cv.height + 150) {
+        vid--;
+        snd('hit');
+        if (vid <= 0) { doGO('¡Cristina cayó al vacío!'); return; }
+        // Respawn on nearest visible platform
+        let best = null, bestScore = Infinity;
         for (let p of platforms) {
-            let dx = p.x + p.w/2 - P.x;
-            let dy = p.y - P.y;
-            let dist = Math.abs(dx) + Math.abs(dy);
-            if (dist < bestDist && p.y < P.y) { bestDist = dist; best = p; }
+            if (p.tp === 'lava') continue;
+            let px = p.x + p.w/2;
+            let py = p.y;
+            if (py < cam.y || py > cam.y + cv.height) continue;
+            let dist = Math.abs(px - (cam.x + cv.width/2)) + Math.abs(py - (cam.y + cv.height/2));
+            if (dist < bestScore) { bestScore = dist; best = p; }
         }
-        if (best) { P.x = best.x + best.w/2 - P.w/2; P.y = best.y - P.h - 10; }
-        else { P.x = cam.x + 50; P.y = cam.y + 100; }
-        P.vy = 0;
+        if (!best) {
+            for (let p of platforms) {
+                if (p.tp !== 'lava' && (!best || p.y < best.y)) best = p;
+            }
+        }
+        if (best) {
+            P.x = best.x + best.w/2 - P.w/2;
+            P.y = best.y - P.h - 5;
+        } else {
+            P.x = cam.x + cv.width/2;
+            P.y = cam.y + cv.height/2;
+        }
+        P.vy = 0; P.vx = 0;
     }
 
     // Enemy movement & collision
@@ -782,15 +795,21 @@ function drawProj(tp) {
 
 function drawHUD(prog) {
     cx.textAlign = 'left';
-    // Timer
+    // HUD background strip
+    cx.fillStyle = 'rgba(0,0,0,0.5)';
+    cx.fillRect(0, 0, cv.width, 130);
+    // Timer - big and visible
     let tc = tRem <= 30 ? '#FF4444' : (tRem <= 60 ? '#FFD700' : '#00FF00');
-    cx.fillStyle = tc; cx.font = 'bold 18px Bangers';
-    cx.fillText('⏱️ ' + fmT(tRem), 10, 25);
+    cx.fillStyle = tc; cx.font = 'bold 22px Arial';
+    cx.fillText('T: ' + fmT(tRem), 10, 25);
     // Score
-    cx.fillStyle = '#FFD700'; cx.fillText('🏆 ' + sc, 10, 48);
+    cx.fillStyle = '#FFD700'; cx.font = 'bold 18px Arial';
+    cx.fillText('PTS: ' + sc, 10, 50);
     // Lives
     cx.fillStyle = '#FF4444'; cx.font = 'bold 14px Arial';
-    cx.fillText('❤️'.repeat(Math.max(0, Math.min(vid, 10))), 10, 68);
+    let vidasTxt = '';
+    for (let i = 0; i < Math.max(0, Math.min(vid, 10)); i++) vidasTxt += '♥ ';
+    cx.fillText(vidasTxt, 10, 70);
     // Progress bar
     let bX=10, bY=78, bW=110, bH=10;
     cx.fillStyle='#333'; cx.fillRect(bX,bY,bW,bH);
