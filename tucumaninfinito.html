@@ -391,7 +391,7 @@
 
     <script>
         // SPRITES - Cargar todas las caricaturas
-        const SPRITES_URL = 'https://kingmetronome.com/juego/sprites/';
+        const SPRITES_URL = './sprites/';
         const sprites = {};
         const SPRITE_LIST = ['milei','milei_hero','majul','feinmann','lanata','gordo_dan','viale','trebuc','cristina','cristina_libre','bullrich','bullrich2','macri','trump','trump_milei','peron','maradona','evita','nestor','karina','caputo','adorni','policia','grabois','moreno','gato','hebe','lula','papa','kicillof','potobellocchia','victoria','motosierra','torta','sturzenegger','espert2','gorila','escudo','cfk','balcon'];
         
@@ -562,7 +562,7 @@
         }
         
         // *** AUDIOS DE ENEMIGOS AL MORIR ***
-        const AUDIOS_URL = 'https://kingmetronome.com/juego/audios/';
+        const AUDIOS_URL = '';
         const enemyAudios = {};
         const enemyAudioList = [
             'majul', 'majul2', 'majul3', 'feinmann', 'feinmann1', 'feinmann2', 'lanata', 'lanata1', 'lanata2', 'milei_jocker', 'milei1', 'milei2', 'mileitrump', 'karina', 'karina1', 'karina2', 'bullrich', 
@@ -773,7 +773,7 @@
             
             let url;
             if (archivo === 'marcha-peronista.mp3') {
-                url = 'https://kingmetronome.com/juego/' + archivo;
+                url = './' + archivo;
             } else {
                 url = MUSICA_URL + archivo;
             }
@@ -810,7 +810,7 @@
             
             if (!audioEnabled) return;
             
-            const url = 'https://kingmetronome.com/juego/marchaperonistainfinito.mp3';
+            const url = './audios/marchaperonistainfinito.mp3https://kingmetronome.com/juego/./';
             musicaFondo = new Audio(url);
             musicaFondo.loop = true;
             musicaFondo.volume = 0.25;
@@ -838,7 +838,7 @@
         const fondos = {};
         for (let i = 1; i <= 10; i++) {
             fondos[i] = new Image();
-            fondos[i].src = 'https://kingmetronome.com/juego/fondos/fondo' + i + '.png';
+            fondos[i].src = './fondos/' + i + '.png';
         }
         SPRITE_LIST.forEach(name => {
             const img = new Image();
@@ -4975,7 +4975,6 @@
             // Resetear pantalla de victoria
             document.getElementById('victoryTitle').textContent = '🎉 ¡VICTORIA! 🎉';
             document.getElementById('victorySubtitle').textContent = '¡Salvaste la Patria!';
-            document.getElementById('cristinaLibre').style.display = 'none';
             document.getElementById('victoryDesc').textContent = 'La Casa Histórica está a salvo';
             
             initLevel();
@@ -6236,12 +6235,7 @@
         
         gameLoop();
         
-        // TEST: Iniciar directo en modo infinito (comentar para producción)
-        setTimeout(() => {
-            document.getElementById('startScreen').classList.add('hidden');
-            document.getElementById('introScreen').classList.add('hidden');
-            startInfiniteMode();
-        }, 500);
+    
         
         // ============================================
         // INTRO CINEMÁTICA
