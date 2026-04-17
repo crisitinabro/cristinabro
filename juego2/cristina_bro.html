@@ -676,7 +676,7 @@
         
         // Audios de jugadores (inicio y victoria)
         const playerAudios = {};
-        const playerAudioList = ['maradona', 'moreno', 'papa', 'nestor', 'peron', 'grabois', 'gato', 'hebe', 'lula', 'kicillof'];
+        const playerAudioList = ['maradona', 'moreno', 'papa', 'nestor', 'grabois', 'gato', 'lula', 'kicillof'];
         
         playerAudioList.forEach(name => {
             playerAudios[name + '_inicio'] = new Audio(AUDIOS_URL + name + '_inicio.mp3');
@@ -684,6 +684,22 @@
             playerAudios[name + '_victoria'] = new Audio(AUDIOS_URL + name + '_victoria.mp3');
             playerAudios[name + '_victoria'].volume = 0.55;
         });
+        
+        // Perón: 8 frases random (no tiene archivos _inicio/_victoria)
+        const peronFrases = [];
+        for (let i = 1; i <= 8; i++) {
+            const a = new Audio(AUDIOS_URL + 'peronfrase' + i + '.mp3');
+            a.volume = 0.55;
+            peronFrases.push(a);
+        }
+        
+        // Hebe: un solo archivo hebe.mp3 que se usa tanto para inicio como victoria
+        const hebeAudio = new Audio(AUDIOS_URL + 'hebe.mp3');
+        hebeAudio.volume = 0.55;
+        
+        // Evita: un solo archivo evita.mp3 para inicio y victoria
+        const evitaAudio = new Audio(AUDIOS_URL + 'evita.mp3');
+        evitaAudio.volume = 0.55;
         
         // SISTEMA DE AUDIO DE ENEMIGOS
         // - Villano con 1 audio: suena 1 sola vez por nivel
@@ -739,15 +755,33 @@
         function playPlayerAudio(tipo) {
             if (!audioEnabled) return;
             
-            const key = selectedCharacter + '_' + tipo;
-            if (playerAudios[key]) {
+            // Casos especiales
+            let audioToPlay = null;
+            if (selectedCharacter === 'peron') {
+                // Perón: 8 frases random
+                if (peronFrases.length > 0) {
+                    const idx = Math.floor(Math.random() * peronFrases.length);
+                    audioToPlay = peronFrases[idx];
+                }
+            } else if (selectedCharacter === 'hebe') {
+                // Hebe: un solo audio para inicio y victoria
+                audioToPlay = hebeAudio;
+            } else if (selectedCharacter === 'evita') {
+                // Evita: un solo audio para inicio y victoria
+                audioToPlay = evitaAudio;
+            } else {
+                const key = selectedCharacter + '_' + tipo;
+                audioToPlay = playerAudios[key];
+            }
+            
+            if (audioToPlay) {
                 try {
                     mainAudioPlaying = true; // Bloquear audios de villanos
                     // Seguridad: desbloquear después de 6 segundos por si el audio falla
                     setTimeout(() => { mainAudioPlaying = false; }, 6000);
-                    playerAudios[key].currentTime = 0;
-                    playerAudios[key].onended = onMainAudioEnd; // Desbloquear al terminar
-                    playerAudios[key].play().catch(e => {
+                    audioToPlay.currentTime = 0;
+                    audioToPlay.onended = onMainAudioEnd; // Desbloquear al terminar
+                    audioToPlay.play().catch(e => {
                         mainAudioPlaying = false;
                     });
                 } catch(e) {
