@@ -1043,9 +1043,9 @@
             }
             
             // Enemigos (con tope máximo de densidad para que ni los niveles finales sean injugables)
-            const baseSpacing = Math.max(300, 500 - (levelIndex * 30));
-            const spacingVariation = Math.max(150, 300 - (levelIndex * 25));
-            const enemyChance = Math.min(0.8, 0.6 + (levelIndex * 0.04));
+            const baseSpacing = Math.max(450, 500 - (levelIndex * 30));
+            const spacingVariation = Math.max(200, 300 - (levelIndex * 25));
+            const enemyChance = Math.min(0.65, 0.6 + (levelIndex * 0.04));
             
             for (let x = 600; x < level.length - 400; x += baseSpacing + Math.random() * spacingVariation) {
                 if (Math.random() < enemyChance) {
@@ -1062,13 +1062,13 @@
                 vx: -0.3 - (levelIndex * 0.1),
                 type: level.bossType,
                 isBoss: true,
-                hp: 2 + Math.floor(levelIndex / 2),
+                hp: Math.min(4, 2 + Math.floor(levelIndex / 2)),
                 direction: -1
             });
             
             // Items en el suelo
-            const itemChance = 0.5 - (levelIndex * 0.03);
-            for (let x = 200; x < level.length - 200; x += 120 + Math.random() * 150) {
+            const itemChance = Math.max(0.3, 0.5 - (levelIndex * 0.03));
+            for (let x = 200; x < level.length - 200; x += 100 + Math.random() * 120) {
                 if (Math.random() > itemChance) {
                     spawnItem(x, 420, level.length);
                 }
