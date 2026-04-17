@@ -875,11 +875,10 @@
                     b.textContent = (idx + 1) + '. ' + lvl.name;
                     b.style.cssText = 'padding:6px 10px;font-size:0.7rem;background:#75AADB;color:#fff;border:2px solid #FFD700;border-radius:6px;cursor:pointer;font-weight:bold;touch-action:manipulation';
                     b.onclick = () => {
-                        currentLevel = idx;
                         if (lvl.jugador) {
                             selectedCharacter = lvl.jugador;
                         }
-                        startGame();
+                        startGame(idx);
                     };
                     levelBtns.appendChild(b);
                 });
@@ -1889,14 +1888,14 @@
             startGame();
         }
         
-        function startGame() {
+        function startGame(startAtLevel = 0) {
             document.getElementById('startScreen').classList.add('hidden');
             
             if (isMobile) {
                 document.getElementById('rotateScreen').classList.add('show-when-playing');
             }
             
-            currentLevel = 0;
+            currentLevel = startAtLevel;
             score = 0;
             dollars = 0;
             gold = 0;
