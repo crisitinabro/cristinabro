@@ -305,6 +305,10 @@
             <div id="levelSelector" style="margin:10px 0;padding:8px;background:rgba(255,215,0,0.1);border:1px dashed #FFD700;border-radius:8px">
                 <p style="color:#FFD700;font-size:0.75rem;margin-bottom:6px">🔧 Debug: saltar a nivel</p>
                 <div id="levelButtons" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div>
+                <label style="display:inline-flex;align-items:center;gap:6px;color:#FFD700;font-size:0.7rem;margin-top:8px;cursor:pointer">
+                    <input type="checkbox" id="debugEnemies" onchange="window.DEBUG_ENEMIES=this.checked">
+                    Mostrar nombres de enemigos
+                </label>
             </div>
             
             <p style="color: #FFD700; margin: 5px 0; font-size: 0.9rem;">Elegí tu héroe:</p>
@@ -1776,14 +1780,32 @@
                 ctx.fillRect(e.x, e.y, e.width, e.height);
             }
             
+            ctx.restore();
+            
+            // DEBUG: mostrar el type real del enemigo encima
+            if (window.DEBUG_ENEMIES) {
+                ctx.save();
+                ctx.fillStyle = '#FFFF00';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                const label = e.type + (e.isBoss ? ' [BOSS]' : '');
+                const labelX = e.x + e.width / 2;
+                const labelY = e.y - 5;
+                ctx.strokeText(label, labelX, labelY);
+                ctx.fillText(label, labelX, labelY);
+                ctx.restore();
+            }
+            
             if (e.isBoss && e.hp > 0) {
+                ctx.save();
                 ctx.fillStyle = '#333';
                 ctx.fillRect(e.x, e.y - 15, e.width, 8);
                 ctx.fillStyle = '#FF0000';
                 ctx.fillRect(e.x, e.y - 15, e.width * (e.hp / 3), 8);
+                ctx.restore();
             }
-            
-            ctx.restore();
         }
         
         function drawHUD(level) {
