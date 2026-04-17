@@ -298,8 +298,14 @@
         
         <!-- PANTALLA DE INICIO -->
         <div id="startScreen" class="overlay">
-            <h1 class="title">👩‍⚖️ CRISTINA BRO 👩‍⚖️</h1>
+            <h1 class="title" id="gameTitle" style="cursor:pointer;user-select:none;-webkit-user-select:none">👩‍⚖️ CRISTINA BRO 👩‍⚖️</h1>
             <p class="subtitle">¡Liberá las provincias para llegar a Cristina!</p>
+            
+            <!-- Selector de nivel oculto (tap 3 veces en el título para mostrar) -->
+            <div id="levelSelector" style="display:none;margin:10px 0;padding:8px;background:rgba(255,215,0,0.1);border:1px dashed #FFD700;border-radius:8px">
+                <p style="color:#FFD700;font-size:0.75rem;margin-bottom:6px">🔧 DEBUG: Elegí nivel</p>
+                <div id="levelButtons" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div>
+            </div>
             
             <p style="color: #FFD700; margin: 5px 0; font-size: 0.9rem;">Elegí tu héroe:</p>
             <div class="char-select" id="charSelect">
@@ -824,6 +830,40 @@
                     <div class="char-name">${char.name}</div>
                 `;
                 charSelect.appendChild(btn);
+            });
+            
+            // ====== SELECTOR DE NIVEL OCULTO (triple tap en el título) ======
+            const title = document.getElementById('gameTitle');
+            const levelSel = document.getElementById('levelSelector');
+            const levelBtns = document.getElementById('levelButtons');
+            let tapCount = 0;
+            let tapTimer = null;
+            
+            title.addEventListener('click', () => {
+                tapCount++;
+                clearTimeout(tapTimer);
+                tapTimer = setTimeout(() => { tapCount = 0; }, 800);
+                if (tapCount >= 3) {
+                    tapCount = 0;
+                    levelSel.style.display = levelSel.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+            
+            // Poblar botones de nivel
+            levelBtns.innerHTML = '';
+            LEVELS.forEach((lvl, idx) => {
+                const b = document.createElement('button');
+                b.textContent = (idx + 1) + '. ' + lvl.name;
+                b.style.cssText = 'padding:6px 10px;font-size:0.7rem;background:#75AADB;color:#fff;border:2px solid #FFD700;border-radius:6px;cursor:pointer;font-weight:bold';
+                b.onclick = () => {
+                    currentLevel = idx;
+                    // Si el nivel tiene un jugador predefinido, usarlo
+                    if (lvl.jugador) {
+                        selectedCharacter = lvl.jugador;
+                    }
+                    startGame();
+                };
+                levelBtns.appendChild(b);
             });
             
             // Controles teclado
@@ -1669,12 +1709,15 @@
             }
             
             if (sprite) {
-                const scale = player.isGrande ? 0.95 : 0.7;
+                // Dibujar con tamaño FIJO basado en la hitbox del player
+                const drawW = player.isGrande ? player.width * 2.0 : player.width * 1.5;
+                const drawH = player.isGrande ? player.height * 2.0 : player.height * 1.5;
+                const offsetX = (drawW - player.width) / 2;
                 ctx.drawImage(sprite, 
-                    player.x - 5, 
-                    player.y + player.height - sprite.height * scale,
-                    sprite.width * scale, 
-                    sprite.height * scale
+                    player.x - offsetX, 
+                    player.y + player.height - drawH,
+                    drawW, 
+                    drawH
                 );
                 
                 if (player.isGrande) {
@@ -1705,12 +1748,16 @@
             }
             
             if (sprite) {
-                const scale = e.isBoss ? 0.9 : 0.65;
+                // Dibujar con tamaño FIJO basado en la hitbox del enemigo,
+                // no en sprite.width/height (los PNGs pueden tener tamaños muy distintos)
+                const drawW = e.isBoss ? e.width * 1.8 : e.width * 1.4;
+                const drawH = e.isBoss ? e.height * 1.8 : e.height * 1.4;
+                const offsetX = (drawW - e.width) / 2;
                 ctx.drawImage(sprite,
-                    e.x - 5,
-                    e.y + e.height - sprite.height * scale,
-                    sprite.width * scale,
-                    sprite.height * scale
+                    e.x - offsetX,
+                    e.y + e.height - drawH,
+                    drawW,
+                    drawH
                 );
             } else {
                 ctx.fillStyle = '#FF0000';
