@@ -1042,10 +1042,10 @@
                 }
             }
             
-            // Enemigos
-            const baseSpacing = 500 - (levelIndex * 30);
-            const spacingVariation = 300 - (levelIndex * 25);
-            const enemyChance = 0.6 + (levelIndex * 0.04);
+            // Enemigos (con tope máximo de densidad para que ni los niveles finales sean injugables)
+            const baseSpacing = Math.max(300, 500 - (levelIndex * 30));
+            const spacingVariation = Math.max(150, 300 - (levelIndex * 25));
+            const enemyChance = Math.min(0.8, 0.6 + (levelIndex * 0.04));
             
             for (let x = 600; x < level.length - 400; x += baseSpacing + Math.random() * spacingVariation) {
                 if (Math.random() < enemyChance) {
