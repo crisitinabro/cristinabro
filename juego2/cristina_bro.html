@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1a1a2e">
-    <title>CRISTINA BRO - Liberar Argentina</title>
+    <title>CRISTINA BROS - Liberar Argentina</title>
     <style>
         * {
             margin: 0;
@@ -298,7 +298,7 @@
         
         <!-- PANTALLA DE INICIO -->
         <div id="startScreen" class="overlay">
-            <h1 class="title" id="gameTitle" style="cursor:pointer;user-select:none;-webkit-user-select:none">👩‍⚖️ CRISTINA BRO 👩‍⚖️</h1>
+            <h1 class="title" id="gameTitle" style="cursor:pointer;user-select:none;-webkit-user-select:none">👩‍⚖️ CRISTINA BROS 👩‍⚖️</h1>
             <p class="subtitle">¡Liberá las provincias para llegar a Cristina!</p>
             
             <!-- Selector de nivel (DEBUG - borrar cuando termines) -->
@@ -366,10 +366,13 @@
             <p style="color: #75AADB; font-size: 1.3rem;">¡Liberaste todas las provincias!</p>
             <p style="color: #fff; font-size: 1rem;">Ahora ayudá a Cristina a escapar de los gorilas...</p>
             <div style="font-size: 1.5rem; color: #FFD700; margin: 10px 0;">🏆 Puntaje Final: <span id="finalTotalScore">0</span></div>
+            <div id="countdownMsg" style="font-size: 1.1rem; color: #FF4500; margin: 15px 0; font-weight: bold;">
+                🔥 Pasando al modo infinito en <span id="countdownNum" style="color: #FFD700; font-size: 1.5rem;">3</span>...
+            </div>
             <button class="btn" onclick="startInfiniteMode()" style="background: linear-gradient(180deg, #FF4500, #DC143C); animation: pulse 1s infinite;">
-                🔥 ESCAPE DE CRISTINA 🔥
+                🔥 IR AHORA 🔥
             </button>
-            <button class="btn" onclick="goToMenu()" style="margin-top: 10px;">🏠 MENÚ</button>
+            <button class="btn" onclick="cancelAutoRedirect()" style="margin-top: 10px;">⏸️ Cancelar</button>
         </div>
         
         <!-- CONTROLES MÓVILES -->
@@ -488,7 +491,7 @@
                 subtitle: 'El Vocero Miente',
                 bgColor1: '#E0F7FA', bgColor2: '#2E7D32',
                 groundColor: '#DEB887',
-                enemies: ['majul', 'feinmann', 'gordo_dan', 'karina', 'adorni', 'moyano'],
+                enemies: ['majul', 'feinmann', 'gordo_dan', 'karina', 'adorni'],
                 bossType: 'adorni',
                 jugador: 'moreno',
                 length: 7000
@@ -1978,9 +1981,40 @@
             if (currentLevel >= LEVELS.length) {
                 document.getElementById('finalTotalScore').textContent = score;
                 document.getElementById('victoryScreen').classList.remove('hidden');
+                startVictoryCountdown();
             } else {
                 showLevelScreen();
             }
+        }
+        
+        let victoryCountdownTimer = null;
+        function startVictoryCountdown() {
+            let n = 3;
+            const numEl = document.getElementById('countdownNum');
+            const msgEl = document.getElementById('countdownMsg');
+            if (numEl) numEl.textContent = n;
+            if (msgEl) msgEl.style.display = '';
+            
+            if (victoryCountdownTimer) clearInterval(victoryCountdownTimer);
+            victoryCountdownTimer = setInterval(() => {
+                n--;
+                if (numEl) numEl.textContent = n;
+                if (n <= 0) {
+                    clearInterval(victoryCountdownTimer);
+                    victoryCountdownTimer = null;
+                    startInfiniteMode();
+                }
+            }, 1000);
+        }
+        
+        function cancelAutoRedirect() {
+            if (victoryCountdownTimer) {
+                clearInterval(victoryCountdownTimer);
+                victoryCountdownTimer = null;
+            }
+            const msgEl = document.getElementById('countdownMsg');
+            if (msgEl) msgEl.style.display = 'none';
+            goToMenu();
         }
         
         function restartLevel() {
@@ -1989,6 +2023,11 @@
         }
         
         function goToMenu() {
+            // Cancelar countdown si está activo
+            if (victoryCountdownTimer) {
+                clearInterval(victoryCountdownTimer);
+                victoryCountdownTimer = null;
+            }
             document.getElementById('gameOverScreen').classList.add('hidden');
             document.getElementById('victoryScreen').classList.add('hidden');
             document.getElementById('levelCompleteScreen').classList.add('hidden');
