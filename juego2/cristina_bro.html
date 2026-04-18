@@ -8,6 +8,30 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1a1a2e">
     <title>CRISTINA BROS - Liberar Argentina</title>
+    
+    <!-- SEO -->
+    <meta name="description" content="🇦🇷 Liberá las 10 provincias argentinas y llegá a la Casa Rosada para liberar a Cristina. Jugá gratis en el navegador.">
+    <meta name="keywords" content="cristina bros, juego argentino, peronismo, milei, casa rosada, juego online gratis">
+    <meta name="author" content="Cristina Bros">
+    
+    <!-- Open Graph (WhatsApp, Facebook, Discord, Telegram, LinkedIn) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CRISTINA BROS - Liberá Argentina">
+    <meta property="og:description" content="🇦🇷 Liberá las 10 provincias y llegá a la Casa Rosada para liberar a Cristina. Enfrentá a Milei, Bullrich, Macri y toda la casta. ¡Jugalo gratis!">
+    <meta property="og:image" content="https://crisitinabro.github.io/cristinabro/sprites/cristina_libre.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Cristina Libre - Cristina Bros">
+    <meta property="og:url" content="https://crisitinabro.github.io/cristinabro/juego2/cristina_bro.html">
+    <meta property="og:site_name" content="CRISTINA BROS">
+    <meta property="og:locale" content="es_AR">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CRISTINA BROS - Liberá Argentina">
+    <meta name="twitter:description" content="🇦🇷 Liberá las 10 provincias y llegá a la Casa Rosada. Enfrentá a la casta. ¡Jugá gratis!">
+    <meta name="twitter:image" content="https://crisitinabro.github.io/cristinabro/sprites/cristina_libre.png">
+    <meta name="twitter:image:alt" content="Cristina Libre - Cristina Bros">
     <style>
         * {
             margin: 0;
@@ -333,6 +357,9 @@
             <p id="gameOverText" style="margin: 15px 0;">¡Los liberales ganaron!</p>
             <div id="finalScore" style="font-size: 1.5rem; color: #FFD700;">0</div>
             <button class="btn" onclick="restartLevel()" style="background: linear-gradient(180deg, #4CAF50, #388E3C);">🔄 REINTENTAR</button>
+            <button class="btn" onclick="shareGame('gameover')" style="background: linear-gradient(180deg, #25D366, #128C7E); border-color: #fff; margin-top: 10px;">
+                📲 COMPARTIR
+            </button>
             <button class="btn" onclick="goToMenu()" style="margin-top: 10px;">🏠 MENÚ</button>
         </div>
         
@@ -347,6 +374,9 @@
                 <p style="color: #FFD700; font-size: 1.5rem; margin-top: 10px;">🏆 Total: <span id="totalScore">0</span></p>
             </div>
             <button class="btn" onclick="nextLevel()">→ SIGUIENTE PROVINCIA</button>
+            <button class="btn" onclick="shareGame('nivel')" style="background: linear-gradient(180deg, #25D366, #128C7E); border-color: #fff; margin-top: 8px;">
+                📲 COMPARTIR
+            </button>
         </div>
         
         <!-- PANTALLA VICTORIA FINAL -->
@@ -361,6 +391,9 @@
             </div>
             <button class="btn" onclick="startInfiniteMode()" style="background: linear-gradient(180deg, #FF4500, #DC143C); animation: pulse 1s infinite;">
                 🔥 IR AHORA 🔥
+            </button>
+            <button class="btn" onclick="shareGame('final')" style="background: linear-gradient(180deg, #25D366, #128C7E); border-color: #fff; margin-top: 10px;">
+                📲 COMPARTIR VICTORIA
             </button>
             <button class="btn" onclick="cancelAutoRedirect()" style="margin-top: 10px;">⏸️ Cancelar</button>
         </div>
@@ -2004,6 +2037,60 @@
         
         function startInfiniteMode() {
             window.location.href = '../tucumaninfinito.html';
+        }
+        
+        // ========================================
+        // COMPARTIR JUEGO
+        // ========================================
+        function shareGame(contexto) {
+            const url = window.location.href.split('?')[0]; // URL limpia sin params
+            
+            let texto;
+            if (contexto === 'final') {
+                texto = `🎉 ¡LIBERÉ A CRISTINA! Jugué CRISTINA BROS y llegué al final con ${score} puntos. Liberá las provincias vos también 🇦🇷`;
+            } else if (contexto === 'nivel') {
+                const lvl = LEVELS[currentLevel];
+                texto = `✌️ Liberé ${lvl ? lvl.name : 'una provincia'} en CRISTINA BROS. ¿Te animás a llegar a la Casa Rosada? 🇦🇷`;
+            } else if (contexto === 'gameover') {
+                texto = `💀 Me atraparon los liberales en CRISTINA BROS 😂 A ver si vos llegás más lejos 🇦🇷`;
+            } else {
+                texto = `🔥 CRISTINA BROS — liberá las provincias argentinas. ¡Jugalo gratis!`;
+            }
+            
+            const shareData = {
+                title: 'CRISTINA BROS',
+                text: texto,
+                url: url
+            };
+            
+            // Mobile / browsers modernos: Web Share API
+            if (navigator.share) {
+                navigator.share(shareData).catch(err => {
+                    // Usuario canceló o falló
+                    if (err.name !== 'AbortError') {
+                        fallbackShare(texto + ' ' + url);
+                    }
+                });
+            } else {
+                // Desktop: copiar al portapapeles
+                fallbackShare(texto + ' ' + url);
+            }
+        }
+        
+        function fallbackShare(fullText) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(fullText).then(() => {
+                    alert('✅ ¡Link copiado! Pegalo donde quieras compartirlo.');
+                }).catch(() => {
+                    promptCopy(fullText);
+                });
+            } else {
+                promptCopy(fullText);
+            }
+        }
+        
+        function promptCopy(text) {
+            prompt('Copiá este texto para compartir:', text);
         }
         
         // Iniciar
