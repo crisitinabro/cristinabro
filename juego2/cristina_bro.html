@@ -298,18 +298,8 @@
         
         <!-- PANTALLA DE INICIO -->
         <div id="startScreen" class="overlay">
-            <h1 class="title" id="gameTitle" style="cursor:pointer;user-select:none;-webkit-user-select:none">👩‍⚖️ CRISTINA BROS 👩‍⚖️</h1>
+            <h1 class="title">👩‍⚖️ CRISTINA BROS 👩‍⚖️</h1>
             <p class="subtitle">¡Liberá las provincias para llegar a Cristina!</p>
-            
-            <!-- Selector de nivel (DEBUG - borrar cuando termines) -->
-            <div id="levelSelector" style="margin:10px 0;padding:8px;background:rgba(255,215,0,0.1);border:1px dashed #FFD700;border-radius:8px">
-                <p style="color:#FFD700;font-size:0.75rem;margin-bottom:6px">🔧 Debug: saltar a nivel</p>
-                <div id="levelButtons" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div>
-                <label style="display:inline-flex;align-items:center;gap:6px;color:#FFD700;font-size:0.7rem;margin-top:8px;cursor:pointer">
-                    <input type="checkbox" id="debugEnemies" onchange="window.DEBUG_ENEMIES=this.checked">
-                    Mostrar nombres de enemigos
-                </label>
-            </div>
             
             <p style="color: #FFD700; margin: 5px 0; font-size: 0.9rem;">Elegí tu héroe:</p>
             <div class="char-select" id="charSelect">
@@ -872,51 +862,6 @@
                 `;
                 charSelect.appendChild(btn);
             });
-            
-            // ====== SELECTOR DE NIVEL OCULTO (triple tap en el título) ======
-            const title = document.getElementById('gameTitle');
-            const levelSel = document.getElementById('levelSelector');
-            const levelBtns = document.getElementById('levelButtons');
-            let tapCount = 0;
-            let tapTimer = null;
-            
-            function handleTitleTap(e) {
-                if (e) e.preventDefault();
-                tapCount++;
-                clearTimeout(tapTimer);
-                tapTimer = setTimeout(() => { tapCount = 0; }, 1200);
-                console.log('Title tap:', tapCount);
-                if (tapCount >= 3) {
-                    tapCount = 0;
-                    const isHidden = levelSel.style.display === 'none' || levelSel.style.display === '';
-                    levelSel.style.display = isHidden ? 'block' : 'none';
-                    console.log('Level selector toggled:', levelSel.style.display);
-                }
-            }
-            
-            if (title) {
-                title.addEventListener('click', handleTitleTap);
-                title.addEventListener('touchstart', handleTitleTap, { passive: false });
-            } else {
-                console.warn('gameTitle no encontrado');
-            }
-            
-            // Poblar botones de nivel
-            if (levelBtns) {
-                levelBtns.innerHTML = '';
-                LEVELS.forEach((lvl, idx) => {
-                    const b = document.createElement('button');
-                    b.textContent = (idx + 1) + '. ' + lvl.name;
-                    b.style.cssText = 'padding:6px 10px;font-size:0.7rem;background:#75AADB;color:#fff;border:2px solid #FFD700;border-radius:6px;cursor:pointer;font-weight:bold;touch-action:manipulation';
-                    b.onclick = () => {
-                        if (lvl.jugador) {
-                            selectedCharacter = lvl.jugador;
-                        }
-                        startGame(idx);
-                    };
-                    levelBtns.appendChild(b);
-                });
-            }
             
             // Controles teclado
             document.addEventListener('keydown', (e) => {
@@ -1817,22 +1762,6 @@
             }
             
             ctx.restore();
-            
-            // DEBUG: mostrar el type real del enemigo encima
-            if (window.DEBUG_ENEMIES) {
-                ctx.save();
-                ctx.fillStyle = '#FFFF00';
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 3;
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-                const label = e.type + (e.isBoss ? ' [BOSS]' : '');
-                const labelX = e.x + e.width / 2;
-                const labelY = e.y - 5;
-                ctx.strokeText(label, labelX, labelY);
-                ctx.fillText(label, labelX, labelY);
-                ctx.restore();
-            }
             
             if (e.isBoss && e.hp > 0) {
                 ctx.save();
