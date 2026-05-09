@@ -90,15 +90,24 @@
             50% { transform: rotate(90deg); }
         }
         
-        /* En portrait: mostrar rotateScreen SOLO si el juego está corriendo */
-        @media screen and (max-width: 900px) and (orientation: portrait) {
+        /* FIX #4: Mostrar rotateScreen en cualquier dispositivo táctil en portrait,
+           no solo por ancho (cubre tablets, plegables y celulares grandes). */
+        @media screen and (orientation: portrait) and (hover: none) and (pointer: coarse) {
+            #rotateScreen.show-when-playing {
+                display: flex !important;
+            }
+        }
+        /* Fallback: cualquier viewport angosto en portrait */
+        @media screen and (max-width: 1024px) and (orientation: portrait) {
             #rotateScreen.show-when-playing {
                 display: flex !important;
             }
         }
         
         /* Landscape móvil - adaptarse al espacio disponible */
-        @media screen and (orientation: landscape) and (max-height: 500px) {
+        /* FIX #1: Landscape mobile - llena la pantalla. max-height: 600 cubre más celulares
+           (incluyendo plegables y devices más grandes). */
+        @media screen and (orientation: landscape) and (max-height: 600px) {
             html, body {
                 height: 100dvh;
                 height: 100vh;
@@ -231,11 +240,13 @@
             width: clamp(36px, 8vh, 56px);
             height: clamp(36px, 8vh, 56px);
             object-fit: contain;
+            pointer-events: none; /* FIX #5: clicks van al .char-btn padre */
         }
         .char-name {
             font-size: clamp(.6rem, 1.5vh, .75rem);
             color: #fff;
             margin-top: 3px;
+            pointer-events: none; /* FIX #5 */
         }
         
         /* ====== CONTROLES MÓVILES ====== */
@@ -420,40 +431,65 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Dimensiones base del juego
+        // Dimensiones base del juego (sistema de coordenadas lógico)
         const BASE_WIDTH = 800;
         const BASE_HEIGHT = 500;
         let scaleX = 1;
         let scaleY = 1;
         
-        // Función para ajustar el canvas al espacio disponible
+        // FIX #1 + #2: Canvas internamente sigue siendo 800x500 (no toco la lógica del juego)
+        // pero por CSS llenamos el contenedor completo.
+        // En landscape mobile esto puede estirar levemente el aspect ratio, pero es preferible
+        // a tener franjas negras y un canvas chiquito centrado.
         function resizeCanvas() {
             const container = document.getElementById('gameContainer');
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
+            const cssW = container.clientWidth;
+            const cssH = container.clientHeight;
             
-            // Mantener proporción 16:10
-            const ratio = BASE_WIDTH / BASE_HEIGHT;
-            let newWidth, newHeight;
+            // Buffer interno SIEMPRE 800x500 — todo el código del juego asume esto
+            if (canvas.width !== BASE_WIDTH) canvas.width = BASE_WIDTH;
+            if (canvas.height !== BASE_HEIGHT) canvas.height = BASE_HEIGHT;
             
-            if (containerWidth / containerHeight > ratio) {
-                newHeight = containerHeight;
-                newWidth = containerHeight * ratio;
+            // Detectar si estamos en landscape mobile (full screen)
+            const isLandscapeMobile = window.matchMedia('(orientation: landscape) and (max-height: 600px)').matches;
+            
+            if (isLandscapeMobile) {
+                // Llenar TODO el contenedor sin mantener aspect ratio
+                // (el canvas se estira un poco pero ocupa toda la pantalla)
+                canvas.style.width = cssW + 'px';
+                canvas.style.height = cssH + 'px';
             } else {
-                newWidth = containerWidth;
-                newHeight = containerWidth / ratio;
+                // Desktop / portrait: mantener aspect ratio 16:10 dentro del container
+                const ratio = BASE_WIDTH / BASE_HEIGHT;
+                let newWidth, newHeight;
+                if (cssW / cssH > ratio) {
+                    newHeight = cssH;
+                    newWidth = cssH * ratio;
+                } else {
+                    newWidth = cssW;
+                    newHeight = cssW / ratio;
+                }
+                canvas.style.width = newWidth + 'px';
+                canvas.style.height = newHeight + 'px';
             }
             
-            canvas.style.width = newWidth + 'px';
-            canvas.style.height = newHeight + 'px';
+            scaleX = BASE_WIDTH / parseFloat(canvas.style.width);
+            scaleY = BASE_HEIGHT / parseFloat(canvas.style.height);
+            // Si el CSS con !important sobreescribe (caso landscape mobile),
+            // leer el tamaño real renderizado:
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width > 0) scaleX = BASE_WIDTH / rect.width;
+            if (rect.height > 0) scaleY = BASE_HEIGHT / rect.height;
             
-            scaleX = BASE_WIDTH / newWidth;
-            scaleY = BASE_HEIGHT / newHeight;
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
         }
         
         window.addEventListener('resize', resizeCanvas);
         window.addEventListener('orientationchange', () => {
+            // iOS Safari tarda en reportar el nuevo tamaño después de rotar
             setTimeout(resizeCanvas, 100);
+            setTimeout(resizeCanvas, 500);
         });
         
         const SPRITES_URL = '../sprites/';
@@ -882,13 +918,21 @@
             // Ajustar canvas al tamaño disponible
             resizeCanvas();
             
+            // FIX #6: mostrar tip de PWA en iOS desde el arranque
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                const tip = document.getElementById('fullscreenTip');
+                if (tip) tip.style.display = 'block';
+            }
+            
             // Crear selector de personajes
             const charSelect = document.getElementById('charSelect');
             charSelect.innerHTML = '';
             PLAYABLE_CHARACTERS.forEach(char => {
                 const btn = document.createElement('div');
                 btn.className = 'char-btn' + (char.id === selectedCharacter ? ' selected' : '');
-                btn.onclick = () => selectCharacter(char.id);
+                // FIX #5: pasar el botón explícitamente — `event` global no existe en Safari iOS
+                btn.onclick = () => selectCharacter(char.id, btn);
                 btn.innerHTML = `
                     <img src="${SPRITES_URL}${char.id}.png" alt="${char.name}">
                     <div class="char-name">${char.name}</div>
@@ -918,8 +962,10 @@
                 if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') keys.jump = false;
             });
             
-            // Controles móviles
-            setupMobileControls();
+            // FIX #8: solo registrar listeners táctiles si realmente es mobile
+            if (isMobile) {
+                setupMobileControls();
+            }
         }
         
         function setupMobileControls() {
@@ -961,10 +1007,20 @@
             }
         }
         
-        function selectCharacter(charId) {
+        function selectCharacter(charId, btnEl) {
             selectedCharacter = charId;
             document.querySelectorAll('.char-btn').forEach(btn => btn.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
+            // FIX #5: usar el botón pasado por parámetro (no `event.currentTarget`,
+            // que no existe en Safari iOS y rompía la selección de personaje)
+            if (btnEl) {
+                btnEl.classList.add('selected');
+            } else {
+                // Fallback: buscar por contenido si no se pasó el elemento
+                const btn = Array.from(document.querySelectorAll('.char-btn')).find(b =>
+                    b.querySelector('img') && b.querySelector('img').src.includes(charId + '.png')
+                );
+                if (btn) btn.classList.add('selected');
+            }
         }
         
         // =============================================
@@ -1810,17 +1866,20 @@
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.fillRect(0, 0, canvas.width, 50);
             
+            // FIX #7: textBaseline 'middle' hace que los emojis se alineen igual en
+            // iOS, Android, Chrome y Safari (cada uno renderiza emojis con baselines distintas).
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
             
-            ctx.fillText('❤️'.repeat(player.lives), 10, 20);
-            ctx.fillText('🏆 ' + score, 10, 40);
-            ctx.fillText('💵' + dollars + ' 🪙' + gold + ' 🎫' + tickets, 100, 40);
+            ctx.fillText('❤️'.repeat(player.lives), 10, 15);
+            ctx.fillText('🏆 ' + score, 10, 35);
+            ctx.fillText('💵' + dollars + ' 🪙' + gold + ' 🎫' + tickets, 100, 35);
             
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 12px Arial';
-            ctx.fillText('Q◀ Munición ▶E', 280, 15);
+            ctx.fillText('Q◀ Munición ▶E', 280, 12);
             
             let projX = 280;
             for (let i = 0; i < PROJECTILE_TYPES.length; i++) {
@@ -1834,7 +1893,7 @@
                 
                 ctx.font = isSelected ? 'bold 20px Arial' : '16px Arial';
                 ctx.globalAlpha = isSelected ? 1 : 0.5;
-                ctx.fillText(p.emoji, projX, 42);
+                ctx.fillText(p.emoji, projX, 35);
                 ctx.globalAlpha = 1;
                 
                 projX += 30;
@@ -1842,13 +1901,17 @@
             
             ctx.textAlign = 'right';
             ctx.fillStyle = '#FFD700';
-            ctx.fillText(level.name, canvas.width - 10, 28);
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(level.name, canvas.width - 10, 20);
             
             const progress = player.x / level.length;
             ctx.fillStyle = '#333';
             ctx.fillRect(canvas.width - 110, 35, 100, 6);
             ctx.fillStyle = '#75AADB';
             ctx.fillRect(canvas.width - 110, 35, 100 * progress, 6);
+            
+            // Resetear baseline para que no afecte otros draws
+            ctx.textBaseline = 'alphabetic';
         }
         
         // =============================================
@@ -1866,14 +1929,28 @@
         // =============================================
         // CONTROL DE JUEGO
         // =============================================
+        // FIX #6: requestFullscreen NO funciona en iOS Safari (mobile). Detectamos
+        // y solo lo intentamos donde realmente anda (Android Chrome, desktop).
         function enterFullscreen() {
             const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
+            // Detectar iOS Safari — no soporta Fullscreen API en absoluto en mobile
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                // Mostrar el tip de "agregar a pantalla de inicio" como alternativa
+                const tip = document.getElementById('fullscreenTip');
+                if (tip) tip.style.display = 'block';
+                return;
+            }
+            try {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            } catch (e) {
+                // Ignorar — no es crítico
             }
         }
         
@@ -2034,6 +2111,33 @@
         function togglePause() {
             gamePaused = !gamePaused;
         }
+        
+        // FIX #4b: Auto-pausa cuando el celu rota a portrait durante el juego.
+        // Sin esto, el juego sigue corriendo detrás del rotateScreen y el jugador muere.
+        function checkOrientationPause() {
+            const isPortrait = window.matchMedia('(orientation: portrait)').matches;
+            const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+                            || window.innerWidth <= 1024;
+            
+            if (gameRunning && isPortrait && isTouch) {
+                gamePaused = true;
+                // Resetear teclas para que no queden "pegadas" al rotar
+                keys.left = false;
+                keys.right = false;
+                keys.jump = false;
+            } else if (gamePaused && !isPortrait && gameRunning) {
+                // Volvió a landscape: despausa
+                gamePaused = false;
+                // Re-arrancar el loop por si se detuvo
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        window.addEventListener('orientationchange', () => {
+            setTimeout(checkOrientationPause, 200);
+            setTimeout(checkOrientationPause, 600);
+        });
+        window.addEventListener('resize', checkOrientationPause);
         
         function startInfiniteMode() {
             window.location.href = '../tucumaninfinito.html';
